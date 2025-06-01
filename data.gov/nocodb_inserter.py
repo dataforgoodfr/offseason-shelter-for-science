@@ -33,7 +33,7 @@ argparser.add_argument('--insert-organization', action='store_true')
 
 argparser.add_argument('--project-name', default=DEFAULT_PROJECT_NAME, help="NOCODB project name")
 argparser.add_argument('--project-path', default=DEFAULT_PROJECT_PATH, help="Path to NOCODB project file.")
-argparser.add_argument('--batch-size', default=50, help="Call CKAN API for inserting every X file parsed.")
+argparser.add_argument('--batch-size', default=500, help="Call NOCODB API for inserting every X file parsed.")
 
 argparser.add_argument('--mapping-path', default=DEFAULT_MAPPING_PATH, help="Path to NOCODB mapping file.")
 
@@ -48,12 +48,12 @@ api_mgr.load_mapping(args.mapping_path)
 # @todo : Several scripts running concurrently could lead to organization duplicates
 existing_organizations = {}
 if args.insert_organization:
+    print("Checking existing organizations...")
     api_result = api_mgr.list_records(nocodb.tables.TABLE_DG_ORGANIZATIONS)
-    print(api_result)
     if api_result:
         for organization in api_result['list']:
             existing_organizations[organization['dg_id']] = True
-print(existing_organizations)
+
 path_regex = re.compile(args.path_regex)
 
 loader = DatasetLoader()
@@ -62,12 +62,14 @@ datasets = []
 resources = []
 file_index = 0
 
+# First pass to count items. Not keeping resulting to reduce memory consumption
+file_count = len([item for item in args.input.rglob('*.json')])
+
 for item in args.input.rglob('*.json'):
     match_res = path_regex.match(str(item))
     if not match_res:
         continue
 
-    print(item.name)
     query_result = loader.load(item, resources=True)
 
     for dataset in query_result.datasets.values():
@@ -83,6 +85,8 @@ for item in args.input.rglob('*.json'):
     
     # Inserting every "batch size" file parsed
     if (file_index % args.batch_size) == 0:
+        print(file_index, '/', file_count)
+
         api_mgr.insert_objects(datasets)
         datasets = []
         api_mgr.insert_objects(resources)

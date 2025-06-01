@@ -5,8 +5,12 @@ import json
 import pathlib
 import re
 import requests
+from tqdm import tqdm
 
 from .project import Project
+
+BATCH_INSERT_LIMIT_DEFAULT = 2000
+BATCH_INSERT_LIMIT_MAX = 5000
 
 class TokenError(Exception):
     pass
@@ -64,16 +68,22 @@ class Manager:
             raise APIError(response.status_code, response.json())
 
         result = response.json()
-        # print(f"Statut: {response.status_code}, Réponse: {result}")
 
         return result
 
-    def insert_rows(self, table_name, rows, limit:int=100):
+    # @todo : test bulk insert and chunks.
+    def insert_rows(self, table_name, rows, limit:int=BATCH_INSERT_LIMIT_DEFAULT):
         """
         :param limit: Row limit per request.
         """
 
-        result = False
+        if not rows:
+            return
+
+        if limit > BATCH_INSERT_LIMIT_MAX:
+            limit = BATCH_INSERT_LIMIT_MAX
+        elif limit < 0:
+            limit = BATCH_INSERT_LIMIT_DEFAULT
 
         table_id = self.project.get_table_id(table_name)
         if not table_id:
@@ -81,18 +91,23 @@ class Manager:
 
         headers = self.generate_headers()
 
-        for row in rows:
+        # Chunking rows for bulk insert without exceeding limit.
+        chunked_rows = [rows[i:i+limit] for i in range(0, len(rows), limit)]
+
+        print(f'INSERT INTO {table_name}')
+        progress = len(chunked_rows) > 1
+        for rows in tqdm(chunked_rows):
             response = requests.post(
                 f"{self.url}/api/v2/tables/{table_id}/records",
                 headers=headers,
-                json=row
+                json=rows
             )
             if response.status_code != 200:
-                raise APIError(response.status_code, response.json()
-)
-            print(f"Statut: {response.status_code}, Réponse: {response.json()}")
+                raise APIError(response.status_code, response.json())
 
-    def insert_objects(self, objects, limit:int=500):
+    # @todo test different objects
+    # @todo test bulk insert
+    def insert_objects(self, objects, limit:int=BATCH_INSERT_LIMIT_DEFAULT):
         if not self.mapping:
             raise MappingError("Mapping is not set.")
 
@@ -109,14 +124,9 @@ class Manager:
 
                 rows[table].append(row)
 
-                # Batch insert
-                if len(rows[table]) == limit:
-                    # self.insert_rows(rows[table])
-                    rows[table] = []
-
         # Sending remaining rows
         for table, table_rows in rows.items():
-            self.insert_rows(table, table_rows)
+            self.insert_rows(table, table_rows, limit=limit)
             
     def object_to_row(self, obj) -> tuple:
         """
