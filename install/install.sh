@@ -16,4 +16,4 @@ echo $PROJECT_PATH > $VENV_PATH/lib/python$PYTHON_VERSION/site-packages/api.pth
 source $VENV_PATH/bin/activate
 
 # Installing packages
-pip3 install requests ckanapi tqdm
+pip3 install requests ckanapi tqdm pydantic

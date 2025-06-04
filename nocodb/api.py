@@ -236,17 +236,12 @@ class Manager:
         method = getattr(requests, method)
 
         params = {}
-        print(kwargs)
-        if "fields" in kwargs:
-            params["fields"] = ",".join(kwargs["fields"])
-        if "limit" in kwargs:
-            params["limit"] = kwargs["limit"]
-        if "offset" in kwargs:
-            params["offset"] = kwargs["offset"]
-        if "sort" in kwargs:
-            params["sort"] = kwargs["sort"]
-        if "where" in kwargs:
-            params["where"] = kwargs["where"]
+        for key in kwargs.keys():
+            if kwargs[key] is not None:
+                if key == "fields":
+                    params[key] = ",".join(kwargs["fields"])
+                else:
+                    params[key] = kwargs[key]
 
         if not params:
             params = None
