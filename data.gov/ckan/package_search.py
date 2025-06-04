@@ -3,6 +3,7 @@
 import json
 import pathlib
 import time
+from tqdm import tqdm
 
 from ckanapi import RemoteCKAN
 
@@ -94,6 +95,8 @@ class Searcher:
         if start is None:
             start = 0
 
+        progress = None
+
         while not self.last_result or not self.last_result.is_empty():
             try:
                 self.request(start=start, rows=rows)
@@ -110,7 +113,9 @@ class Searcher:
 
             if not total_expected:
                 total_expected = self.last_result.total_count
+                progress = tqdm(total=total_expected)
 
+            progress.update(self.last_result.count)
             total_retrieved += self.last_result.count
 
             if limit:
@@ -125,6 +130,7 @@ class Searcher:
             if self.output_dir and self.output_prefix:
                 self.write_last_result(self.output_dir, self.output_prefix)
 
+        progress.close()
         print(f'Expected: {total_expected}, Retrieved: {total_retrieved}')
 
     # Writes last request result to a file.

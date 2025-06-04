@@ -7,8 +7,14 @@ class Resource:
         self.id = obj['id']
         self.name = obj['name']
         self.description = obj['description']
-        self.resource_locator_function = obj['resource_locator_function']
-        self.resource_locator_protocol = obj['resource_locator_protocol']
+
+        self.resource_locator_function = obj['resource_locator_function'] if 'resource_locator_function' in obj else None
+        self.resource_locator_protocol = obj['resource_locator_protocol'] if 'resource_locator_protocol' in obj else None
+
+        self.mimetype = None
+        if 'mimetype' in obj:
+            self.mimetype = obj['mimetype']
+
         self.state = obj['state']
         self.created = obj['created']
         self.metadata_modified = obj['metadata_modified']

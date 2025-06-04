@@ -28,6 +28,7 @@
             "dataset_id": "dg_dataset_id",
             "name": "dg_name",
             "description": "dg_description",
+            "mimetype": "dg_mimetype",
             "resource_locator_function": "dg_locator_function",
             "resource_locator_protocol": "dg_locator_protocol",
             "url": "dg_url",
