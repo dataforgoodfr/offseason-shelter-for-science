@@ -21,15 +21,11 @@ SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
 DEFAULT_DATA_DB_PATH = SCRIPT_DIR.parent / 'data/db'
 DEFAULT_PROJECT_PATH = DEFAULT_DATA_DB_PATH / 'projects.json'
 DEFAULT_MAPPING_PATH = DEFAULT_DATA_DB_PATH / 'mapping.json'
-DEFAULT_PROJECT_NAME = "offseason_us_climate_data"
+DEFAULT_PROJECT_NAME = "offseason_us_climate_data_preprod"
 
 argparser = argparse.ArgumentParser()
 argparser.add_argument('input', type=pathlib.Path, help="Input directory to crawl in.")
 argparser.add_argument('path_regex', help="File path regular expression to filter input files.")
-
-argparser.add_argument('--output-prefix')
-
-argparser.add_argument('--insert-organization', action='store_true')
 
 argparser.add_argument('--project-name', default=DEFAULT_PROJECT_NAME, help="NOCODB project name")
 argparser.add_argument('--project-path', default=DEFAULT_PROJECT_PATH, help="Path to NOCODB project file.")
@@ -47,12 +43,12 @@ api_mgr.load_mapping(args.mapping_path)
 # Checking existing organizations in DB.
 # @todo : Several scripts running concurrently could lead to organization duplicates
 existing_organizations = {}
-if args.insert_organization:
-    print("Checking existing organizations...")
-    api_result = api_mgr.list_records(nocodb.tables.TABLE_DG_ORGANIZATIONS)
-    if api_result:
-        for organization in api_result['list']:
-            existing_organizations[organization['dg_id']] = True
+
+print("Checking existing organizations...")
+api_result = api_mgr.list_records(nocodb.tables.TABLE_DG_ORGANIZATIONS)
+if api_result:
+    for organization in api_result['list']:
+        existing_organizations[organization['dg_id']] = True
 
 path_regex = re.compile(args.path_regex)
 
@@ -74,8 +70,8 @@ for item in args.input.rglob('*.json'):
 
     for dataset in query_result.datasets.values():
         # Must insert organization and organization could not be present in NOCODB
-        if args.insert_organization and dataset.organization.id not in existing_organizations:
-            result = api_mgr.insert_objects([dataset.organization])
+        if dataset.organization.id not in existing_organizations:
+            result = api_mgr.create_records_from_objects([dataset.organization])
             existing_organizations[dataset.organization.id] = True
 
         datasets.append(dataset)
@@ -87,12 +83,12 @@ for item in args.input.rglob('*.json'):
     if (file_index % args.batch_size) == 0:
         print(file_index, '/', file_count)
 
-        api_mgr.insert_objects(datasets)
+        api_mgr.create_records_from_objects(datasets)
         datasets = []
-        api_mgr.insert_objects(resources)
+        api_mgr.create_records_from_objects(resources)
         resources = []
 
 if datasets:
-    api_mgr.insert_objects(datasets)
+    api_mgr.create_records_from_objects(datasets)
 if resources:
-    api_mgr.insert_objects(resources)
+    api_mgr.create_records_from_objects(resources)

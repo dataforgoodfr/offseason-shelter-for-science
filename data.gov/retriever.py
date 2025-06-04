@@ -17,7 +17,7 @@ DEFAULT_OUTPUT_DIR = SCRIPT_DIR.parent / 'data/output'
 DEFAULT_URL = 'https://catalog.data.gov'
 
 argparser = argparse.ArgumentParser(description="Fetch data.gov metadata.")
-argparser.add_argument("organization", help="data.gov organization.")
+argparser.add_argument("organizations", nargs='+', help="A list of data.gov organizations.")
 argparser.add_argument("--url", type=str, default=DEFAULT_URL, help="URL to fetch data from")
 argparser.add_argument("--start", type=int, default=0, help="CKAN 'start' parameter.")
 argparser.add_argument("--rows", type=int, default=None, help="CKAN 'rows' parameter.")
@@ -30,16 +30,18 @@ args = argparser.parse_args()
 # Checking output dir exists
 args.output_dir.resolve(strict=True).is_dir()
 
-output_dir = args.output_dir / (f'data_gov_{args.organization}_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
-output_prefix='package_search'
+for organization in args.organizations:
+    print(f'Retrieving {organization} metadata...')
+    output_dir = args.output_dir / (f'data_gov_{organization}_' + datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
+    output_prefix='package_search'
 
-# Init
-searcher = Searcher(args.url, output_dir=output_dir, output_prefix=output_prefix)
-searcher.set_organization(args.organization)
-searcher.build_query_params()
+    # Init
+    searcher = Searcher(args.url, output_dir=output_dir, output_prefix=output_prefix)
+    searcher.set_organization(organization)
+    searcher.build_query_params()
 
-if args.full or args.limit:
-    searcher.search(start=args.start, rows=args.rows, limit=args.limit, sleep=15, retries=3)
-else:
-    package_search_res = searcher.request(start=args.start, rows=args.rows)
-    searcher.write_last_result(output_dir, prefix=output_prefix)
+    if args.full or args.limit:
+        searcher.search(start=args.start, rows=args.rows, limit=args.limit, sleep=15, retries=3)
+    else:
+        package_search_res = searcher.request(start=args.start, rows=args.rows)
+        searcher.write_last_result(output_dir, prefix=output_prefix)
