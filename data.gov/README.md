@@ -19,7 +19,7 @@ curl -X POST "https://catalog.data.gov/api/3/action/package_search" \
 
 ```bash
 curl --request POST \
-	--url 'https://noco.services.dataforgood.fr/api/v2/tables/TABLE_ID/records' \
+	--url 'https://NOCODB_DOMAIN/api/v2/tables/TABLE_ID/records' \
 	--header 'xc-token: <TOKEN>' \
     --header 'Content-Type: application/json' \
     --data '[{"foo": "Foo bar", "bar": "2025-05-30", "unknown_field": "ERROR!"}, {"foo": "bar", "bar": "2025-05-31", "unknown_field": "?"}]'

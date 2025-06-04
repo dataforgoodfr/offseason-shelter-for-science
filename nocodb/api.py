@@ -40,6 +40,31 @@ TokenValidator.regex = re.compile('[a-zA-Z0-9_\-]{40}')
 
 # -----
 
+class PageInfo:
+    def __init__(self, page_info):
+        self.total_rows = page_info['totalRows']
+        
+        self.page = page_info['page']
+        self.page_size = page_info['pageSize']
+        
+        self.is_first_page = page_info['isFirstPage']
+        self.is_last_page = page_info['isLastPage']
+
+class ListResult:
+    def __init__(self, response):
+        self.list = response['list']
+        self.page_info = PageInfo(response['pageInfo'])
+
+    def next(self):
+        for record in self.list:
+            yield record
+
+    def count(self):
+        return len(self.list)
+
+# -----
+
+# @todo : Caching URL by HTTP method and table name ?
 class Manager:
     def __init__(self, url, project: Project):
         self.url = url
@@ -51,33 +76,47 @@ class Manager:
     def load_mapping(self, path: pathlib.Path):
         self.mapping = json.load(path.open('r'))
 
-    def list_records(self, table_name):
+    def count_records(self, table_name, where=None) -> int:
+        response = self.table_request(
+            'get',
+            table_name,
+            url_suffix='/count',
+            where=where,
+        )
+        return response['count']
+
+    def list_records(self, table_name, fields:list=None, limit=None, offset=None, sort=None, where=None):
+        """
+        :return: ListResult
+        """
         result = None
 
-        table_id = self.project.get_table_id(table_name)
-        if not table_id:
-            raise UnknownTableError()
-
-        headers = self.generate_headers()
-
-        response = requests.get(
-            f"{self.url}/api/v2/tables/{table_id}/records",
-            headers=headers
+        response = self.table_request(
+            'get',
+            table_name,
+            fields=fields,
+            limit=limit,
+            offset=offset,
+            sort=sort,
+            where=where,
         )
-        if response.status_code != 200:
-            raise APIError(response.status_code, response.json())
 
-        result = response.json()
+        return ListResult(response)
 
-        return result
+    def update_records(self, table_name, update_objects):
+        return self.table_request(
+            'patch',
+            table_name,
+            json=update_objects,
+        )
 
     # @todo : test bulk insert and chunks.
-    def insert_rows(self, table_name, rows, limit:int=BATCH_INSERT_LIMIT_DEFAULT):
+    def create_records(self, table_name, records, limit:int=BATCH_INSERT_LIMIT_DEFAULT):
         """
-        :param limit: Row limit per request.
+        :param limit: Record limit per request.
         """
 
-        if not rows:
+        if not records:
             return
 
         if limit > BATCH_INSERT_LIMIT_MAX:
@@ -85,48 +124,41 @@ class Manager:
         elif limit < 0:
             limit = BATCH_INSERT_LIMIT_DEFAULT
 
-        table_id = self.project.get_table_id(table_name)
-        if not table_id:
-            raise UnknownTableError()
+        # Chunking records for bulk insert without exceeding limit.
+        chunked_records = [records[i:i+limit] for i in range(0, len(records), limit)]
 
-        headers = self.generate_headers()
-
-        # Chunking rows for bulk insert without exceeding limit.
-        chunked_rows = [rows[i:i+limit] for i in range(0, len(rows), limit)]
-
+        progress = len(chunked_records) > 1
+        
         print(f'INSERT INTO {table_name}')
-        progress = len(chunked_rows) > 1
-        for rows in tqdm(chunked_rows):
-            response = requests.post(
-                f"{self.url}/api/v2/tables/{table_id}/records",
-                headers=headers,
-                json=rows
+        for records in tqdm(chunked_records):
+            response = self.table_request(
+                'post',
+                table_name,
+                json=records
             )
-            if response.status_code != 200:
-                raise APIError(response.status_code, response.json())
 
     # @todo test different objects
     # @todo test bulk insert
-    def insert_objects(self, objects, limit:int=BATCH_INSERT_LIMIT_DEFAULT):
+    def create_records_from_objects(self, objects, limit:int=BATCH_INSERT_LIMIT_DEFAULT):
         if not self.mapping:
             raise MappingError("Mapping is not set.")
 
         object_count = len(objects)
         remaining_count = 0
 
-        rows = {}
+        records = {}
         for obj in objects:
             result = self.object_to_row(obj)
             if result:
                 (table, row) = result
-                if not table in rows:
-                    rows[table] = []
+                if not table in records:
+                    records[table] = []
 
-                rows[table].append(row)
+                records[table].append(row)
 
-        # Sending remaining rows
-        for table, table_rows in rows.items():
-            self.insert_rows(table, table_rows, limit=limit)
+        # Sending remaining records
+        for table, table_records in records.items():
+            self.create_records(table, table_records, limit=limit)
             
     def object_to_row(self, obj) -> tuple:
         """
@@ -158,6 +190,57 @@ class Manager:
             result = (obj_info['table'], row)
 
         return result
+
+    def get_table_url(self, table_name, suffix=None):
+        table_id = self.project.get_table_id(table_name)
+        if not table_id:
+            raise UnknownTableError()
+
+        result = f"{self.url}/api/v2/tables/{table_id}/records"
+
+        if suffix:
+            result += suffix
+        
+        return result
+
+    def table_request(self, method, table_name, url_suffix=None, **kwargs):
+        return self.request(
+            method,
+            self.get_table_url(table_name, suffix=url_suffix),
+            **kwargs,
+        )
+
+    def request(self, method, url, **kwargs):
+        method = getattr(requests, method)
+
+        params = {}
+        print(kwargs)
+        if 'fields' in kwargs:
+            params['fields'] = ','.join(kwargs['fields'])
+        if 'limit' in kwargs:
+            params['limit'] = kwargs['limit']
+        if 'offset' in kwargs:
+            params['offset'] = kwargs['offset']
+        if 'sort' in kwargs:
+            params['sort'] = kwargs['sort']
+        if 'where' in kwargs:
+            params['where'] = kwargs['where']
+
+        if not params:
+            params = None
+
+        json = kwargs['json'] if 'json' in kwargs else None
+
+        response = method(
+            url,
+            headers=self.generate_headers(),
+            params=params,
+            json=json
+        )
+        if response.status_code != 200:
+            raise APIError(response.status_code, response.json())
+
+        return response.json()
 
     def generate_headers(self) -> dict:
         return {
