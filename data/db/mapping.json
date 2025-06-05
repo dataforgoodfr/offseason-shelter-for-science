@@ -18,7 +18,9 @@
             "notes": "dg_notes",
             "state": "dg_state",
             "metadata_created": "dg_metadata_created",
-            "metadata_modified": "dg_metadata_modified"
+            "metadata_modified": "dg_metadata_modified",
+            "access_directdl_count": "access_directdl_count",
+            "access_total_count": "access_total_count"
         }
     },
     "ckan.resource.Resource": {
@@ -34,7 +36,8 @@
             "url": "dg_url",
             "state": "dg_state",
             "created": "dg_created",
-            "metadata_modified": "dg_metadata_modified"
+            "metadata_modified": "dg_metadata_modified",
+            "resource_type": "resource_type"
         }
     }
 }

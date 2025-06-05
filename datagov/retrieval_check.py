@@ -11,8 +11,8 @@ Crawls through directories searching for package_search results, verifying resul
 """
 
 argparser = argparse.ArgumentParser()
-argparser.add_argument('directory', type=pathlib.Path)
-argparser.add_argument('path_regex')
+argparser.add_argument("directory", type=pathlib.Path)
+argparser.add_argument("path_regex")
 
 args = argparser.parse_args()
 
@@ -24,7 +24,7 @@ loader = DatasetLoader()
 
 total_count = 0
 
-for item in args.directory.rglob('*.json'):
+for item in args.directory.rglob("*.json"):
     match_res = path_regex.match(str(item))
     if not match_res:
         continue
@@ -33,7 +33,7 @@ for item in args.directory.rglob('*.json'):
 
     if total_count < loader.expected_count():
         total_count = loader.expected_count()
-        print('New count:', total_count)
+        print("New count:", total_count)
 
-print(loader.parsed_count(), '/', loader.expected_count())
-print('Duplicates:', loader.duplicate_count())
+print(loader.parsed_count(), "/", loader.expected_count())
+print("Duplicates:", loader.duplicate_count())
