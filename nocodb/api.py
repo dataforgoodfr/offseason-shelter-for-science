@@ -12,48 +12,57 @@ from .project import Project
 BATCH_INSERT_LIMIT_DEFAULT = 2000
 BATCH_INSERT_LIMIT_MAX = 5000
 
+
 class TokenError(Exception):
     pass
+
 
 class UnknownTableError(Exception):
     pass
 
+
 class MappingError(Exception):
     pass
+
 
 class APIError(Exception):
     pass
 
+
 # -----
+
 
 class TokenValidator:
     def __init__(self, token):
         self.valid = True
         match_res = self.regex.match(token)
         if match_res:
-           self.valid = True
-    
+            self.valid = True
+
     def is_valid(self) -> bool:
         return self.valid
 
-TokenValidator.regex = re.compile('[a-zA-Z0-9_\-]{40}')
+
+TokenValidator.regex = re.compile("[a-zA-Z0-9_-]{40}")
 
 # -----
 
+
 class PageInfo:
     def __init__(self, page_info):
-        self.total_rows = page_info['totalRows']
-        
-        self.page = page_info['page']
-        self.page_size = page_info['pageSize']
-        
-        self.is_first_page = page_info['isFirstPage']
-        self.is_last_page = page_info['isLastPage']
+        self.total_rows = page_info["totalRows"]
+
+        self.page = page_info["page"]
+        self.page_size = page_info["pageSize"]
+
+        self.is_first_page = page_info["isFirstPage"]
+        self.is_last_page = page_info["isLastPage"]
+
 
 class ListResult:
     def __init__(self, response):
-        self.list = response['list']
-        self.page_info = PageInfo(response['pageInfo'])
+        self.list = response["list"]
+        self.page_info = PageInfo(response["pageInfo"])
 
     def next(self):
         for record in self.list:
@@ -62,7 +71,9 @@ class ListResult:
     def count(self):
         return len(self.list)
 
+
 # -----
+
 
 # @todo : Caching URL by HTTP method and table name ?
 class Manager:
@@ -74,25 +85,30 @@ class Manager:
         self.mapping = None
 
     def load_mapping(self, path: pathlib.Path):
-        self.mapping = json.load(path.open('r'))
+        self.mapping = json.load(path.open("r"))
 
     def count_records(self, table_name, where=None) -> int:
         response = self.table_request(
-            'get',
+            "get",
             table_name,
-            url_suffix='/count',
+            url_suffix="/count",
             where=where,
         )
-        return response['count']
+        return response["count"]
 
-    def list_records(self, table_name, fields:list=None, limit=None, offset=None, sort=None, where=None):
-        """
-        :return: ListResult
-        """
+    def list_records(
+        self,
+        table_name,
+        fields: list = None,
+        limit=None,
+        offset=None,
+        sort=None,
+        where=None,
+    ) -> ListResult:
         result = None
 
         response = self.table_request(
-            'get',
+            "get",
             table_name,
             fields=fields,
             limit=limit,
@@ -105,13 +121,15 @@ class Manager:
 
     def update_records(self, table_name, update_objects):
         return self.table_request(
-            'patch',
+            "patch",
             table_name,
             json=update_objects,
         )
 
     # @todo : test bulk insert and chunks.
-    def create_records(self, table_name, records, limit:int=BATCH_INSERT_LIMIT_DEFAULT):
+    def create_records(
+        self, table_name, records, limit: int = BATCH_INSERT_LIMIT_DEFAULT
+    ):
         """
         :param limit: Record limit per request.
         """
@@ -125,21 +143,21 @@ class Manager:
             limit = BATCH_INSERT_LIMIT_DEFAULT
 
         # Chunking records for bulk insert without exceeding limit.
-        chunked_records = [records[i:i+limit] for i in range(0, len(records), limit)]
+        chunked_records = [
+            records[i : i + limit] for i in range(0, len(records), limit)
+        ]
 
         progress = len(chunked_records) > 1
-        
-        print(f'INSERT INTO {table_name}')
+
+        print(f"INSERT INTO {table_name}")
         for records in tqdm(chunked_records):
-            response = self.table_request(
-                'post',
-                table_name,
-                json=records
-            )
+            response = self.table_request("post", table_name, json=records)
 
     # @todo test different objects
     # @todo test bulk insert
-    def create_records_from_objects(self, objects, limit:int=BATCH_INSERT_LIMIT_DEFAULT):
+    def create_records_from_objects(
+        self, objects, limit: int = BATCH_INSERT_LIMIT_DEFAULT
+    ):
         if not self.mapping:
             raise MappingError("Mapping is not set.")
 
@@ -159,7 +177,7 @@ class Manager:
         # Sending remaining records
         for table, table_records in records.items():
             self.create_records(table, table_records, limit=limit)
-            
+
     def object_to_row(self, obj) -> tuple:
         """
         Transforms an object into a row.
@@ -167,18 +185,18 @@ class Manager:
         :return: (<table name>, dict)
         """
         result = None
-        
+
         # Building FQ class name
-        obj_type = obj.__module__ + '.' + obj.__class__.__qualname__
+        obj_type = obj.__module__ + "." + obj.__class__.__qualname__
 
         if obj_type in self.mapping:
             obj_info = self.mapping[obj_type]
-            fields = obj_info['fields']
+            fields = obj_info["fields"]
             row = {}
             for prop, field in fields.items():
                 # Nested object ?
-                if '.' in prop:
-                    properties = prop.split('.')
+                if "." in prop:
+                    properties = prop.split(".")
                     value = None
                     sub_obj = obj
                     for sub_prop in properties:
@@ -187,7 +205,7 @@ class Manager:
                 else:
                     row[field] = getattr(obj, prop)
 
-            result = (obj_info['table'], row)
+            result = (obj_info["table"], row)
 
         return result
 
@@ -200,7 +218,7 @@ class Manager:
 
         if suffix:
             result += suffix
-        
+
         return result
 
     def table_request(self, method, table_name, url_suffix=None, **kwargs):
@@ -211,34 +229,41 @@ class Manager:
         )
 
     def request(self, method, url, **kwargs):
-        method = getattr(requests, method)
+        request_method = getattr(requests, method)
 
         params = {}
-        print(kwargs)
-        if 'fields' in kwargs:
-            params['fields'] = ','.join(kwargs['fields'])
-        if 'limit' in kwargs:
-            params['limit'] = kwargs['limit']
-        if 'offset' in kwargs:
-            params['offset'] = kwargs['offset']
-        if 'sort' in kwargs:
-            params['sort'] = kwargs['sort']
-        if 'where' in kwargs:
-            params['where'] = kwargs['where']
+        if "fields" in kwargs and kwargs["fields"]:
+            params["fields"] = ",".join(kwargs["fields"])
+        if "limit" in kwargs and kwargs["limit"]:
+            params["limit"] = kwargs["limit"]
+        if "offset" in kwargs and kwargs["offset"]:
+            params["offset"] = kwargs["offset"]
+        if "sort" in kwargs and kwargs["sort"]:
+            params["sort"] = kwargs["sort"]
+        if "where" in kwargs and kwargs["where"]:
+            params["where"] = kwargs["where"]
 
         if not params:
             params = None
 
-        json = kwargs['json'] if 'json' in kwargs else None
+        json = kwargs["json"] if "json" in kwargs else None
 
-        response = method(
-            url,
-            headers=self.generate_headers(),
-            params=params,
-            json=json
+        response = request_method(
+            url, headers=self.generate_headers(), params=params, json=json
         )
         if response.status_code != 200:
-            raise APIError(response.status_code, response.json())
+            error_items = [
+                response.status_code,
+                response.json(),
+                method.upper(),
+                url,
+            ]
+            if params:
+                error_items.append(params)
+            if json:
+                error_items.append(json)
+
+            raise APIError(*error_items)
 
         return response.json()
 
@@ -246,7 +271,7 @@ class Manager:
         return {
             "accept": "application/json",
             "xc-token": self.get_token(),
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
 
     def get_token(self) -> str:
