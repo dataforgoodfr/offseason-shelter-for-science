@@ -14,24 +14,36 @@ import nocodb.tables
 Crawls through directories searching for package_search results, requesting NOCODB API to fill the tables.
 """
 
-URL = 'https://noco.services.dataforgood.fr'
+URL = "https://noco.services.dataforgood.fr"
 
 SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
 
-DEFAULT_DATA_DB_PATH = SCRIPT_DIR.parent / 'data/db'
-DEFAULT_PROJECT_PATH = DEFAULT_DATA_DB_PATH / 'projects.json'
-DEFAULT_MAPPING_PATH = DEFAULT_DATA_DB_PATH / 'mapping.json'
+DEFAULT_DATA_DB_PATH = SCRIPT_DIR.parent / "data/db"
+DEFAULT_PROJECT_PATH = DEFAULT_DATA_DB_PATH / "projects.json"
+DEFAULT_MAPPING_PATH = DEFAULT_DATA_DB_PATH / "mapping.json"
 DEFAULT_PROJECT_NAME = "offseason_us_climate_data_preprod"
 
 argparser = argparse.ArgumentParser()
-argparser.add_argument('input', type=pathlib.Path, help="Input directory to crawl in.")
-argparser.add_argument('path_regex', help="File path regular expression to filter input files.")
+argparser.add_argument("input", type=pathlib.Path, help="Input directory to crawl in.")
+argparser.add_argument(
+    "path_regex", help="File path regular expression to filter input files."
+)
 
-argparser.add_argument('--project-name', default=DEFAULT_PROJECT_NAME, help="NOCODB project name")
-argparser.add_argument('--project-path', default=DEFAULT_PROJECT_PATH, help="Path to NOCODB project file.")
-argparser.add_argument('--batch-size', default=500, help="Call NOCODB API for inserting every X file parsed.")
+argparser.add_argument(
+    "--project-name", default=DEFAULT_PROJECT_NAME, help="NOCODB project name"
+)
+argparser.add_argument(
+    "--project-path", default=DEFAULT_PROJECT_PATH, help="Path to NOCODB project file."
+)
+argparser.add_argument(
+    "--batch-size",
+    default=500,
+    help="Call NOCODB API for inserting every X file parsed.",
+)
 
-argparser.add_argument('--mapping-path', default=DEFAULT_MAPPING_PATH, help="Path to NOCODB mapping file.")
+argparser.add_argument(
+    "--mapping-path", default=DEFAULT_MAPPING_PATH, help="Path to NOCODB mapping file."
+)
 
 args = argparser.parse_args()
 
@@ -47,8 +59,8 @@ existing_organizations = {}
 print("Checking existing organizations...")
 api_result = api_mgr.list_records(nocodb.tables.TABLE_DG_ORGANIZATIONS)
 if api_result:
-    for organization in api_result['list']:
-        existing_organizations[organization['dg_id']] = True
+    for organization in api_result.list:
+        existing_organizations[organization["dg_id"]] = True
 
 path_regex = re.compile(args.path_regex)
 
@@ -59,9 +71,9 @@ resources = []
 file_index = 0
 
 # First pass to count items. Not keeping resulting to reduce memory consumption
-file_count = len([item for item in args.input.rglob('*.json')])
+file_count = len([item for item in args.input.rglob("*.json")])
 
-for item in args.input.rglob('*.json'):
+for item in args.input.rglob("*.json"):
     match_res = path_regex.match(str(item))
     if not match_res:
         continue
@@ -78,10 +90,10 @@ for item in args.input.rglob('*.json'):
         resources += dataset.resources.values()
 
     file_index += 1
-    
+
     # Inserting every "batch size" file parsed
     if (file_index % args.batch_size) == 0:
-        print(file_index, '/', file_count)
+        print(file_index, "/", file_count)
 
         api_mgr.create_records_from_objects(datasets)
         datasets = []

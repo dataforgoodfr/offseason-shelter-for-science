@@ -9,15 +9,16 @@ from ckanapi import RemoteCKAN
 
 from .dataset import Dataset
 
+
 class QueryResult:
     def __init__(self, packages):
         self.packages = packages
 
-        self.total_count = packages['count'] if 'count' in packages else None
+        self.total_count = packages["count"] if "count" in packages else None
 
         self.count = 0
-        if 'results' in packages:
-            self.count = len(packages['results'])
+        if "results" in packages:
+            self.count = len(packages["results"])
 
         if self.total_count:
             self.total_count_digits = len(str(self.total_count))
@@ -25,12 +26,12 @@ class QueryResult:
         self.datasets = {}
 
     def parse_results(self, resources=False):
-        for result in self.packages['results']:
-            self.add_dataset(result['id'], Dataset(result, load_resources=resources))
+        for result in self.packages["results"]:
+            self.add_dataset(result["id"], Dataset(result, load_resources=resources))
 
     def add_dataset(self, dataset_id, result: Dataset, exists_ok=False):
         if not exists_ok and dataset_id in self.datasets:
-            raise Exception('id already exists', dataset_id)
+            raise Exception("id already exists", dataset_id)
 
         self.datasets[dataset_id] = result
 
@@ -39,18 +40,20 @@ class QueryResult:
 
     def write(self, output_path):
         # Writes the output
-        with output_path.open('w') as output_file:
+        with output_path.open("w") as output_file:
             json.dump(self.packages, output_file, indent=4)
+
 
 # -----
 
-class Searcher:
-    def __init__(self, url, output_dir: pathlib.Path=None, output_prefix: str=None):
-       self.url = url
-       self.output_dir = output_dir
-       self.output_prefix = output_prefix
 
-       self.reset()
+class Searcher:
+    def __init__(self, url, output_dir: pathlib.Path = None, output_prefix: str = None):
+        self.url = url
+        self.output_dir = output_dir
+        self.output_prefix = output_prefix
+
+        self.reset()
 
     def reset(self):
         self.remote_ckan = RemoteCKAN(self.url)
@@ -68,23 +71,25 @@ class Searcher:
 
     def build_query_params(self):
         if self.organization:
-            self.filter_query = f'+organization:{self.organization}'
+            self.filter_query = f"+organization:{self.organization}"
 
     # action.package_search request.
     def request(self, start=None, rows=None) -> QueryResult:
         self.last_query = {}
         if self.query:
-            self.last_query['q'] = self.query
+            self.last_query["q"] = self.query
 
         if self.filter_query:
-            self.last_query['fq'] = self.filter_query
+            self.last_query["fq"] = self.filter_query
 
         if start is not None:
-            self.last_query['start'] = start
+            self.last_query["start"] = start
         if rows is not None:
-            self.last_query['rows'] = rows
+            self.last_query["rows"] = rows
 
-        self.last_result = QueryResult(self.remote_ckan.action.package_search(**self.last_query))
+        self.last_result = QueryResult(
+            self.remote_ckan.action.package_search(**self.last_query)
+        )
 
         return self.last_result
 
@@ -131,29 +136,33 @@ class Searcher:
                 self.write_last_result(self.output_dir, self.output_prefix)
 
         progress.close()
-        print(f'Expected: {total_expected}, Retrieved: {total_retrieved}')
+        print(f"Expected: {total_expected}, Retrieved: {total_retrieved}")
 
     # Writes last request result to a file.
-    def write_last_result(self, output_dir: pathlib.Path, prefix: str=None):
+    def write_last_result(self, output_dir: pathlib.Path, prefix: str = None):
         if not prefix:
-            prefix = 'searcher'
+            prefix = "searcher"
 
         # Building file path
         name = prefix
 
-        if 'start' in self.last_query and self.last_result.total_count:
+        if "start" in self.last_query and self.last_result.total_count:
             # Zero padding "start" according to total count digits.
-            name += ('_S{start:0'+str(self.last_result.total_count_digits)+'}').format(start=self.last_query['start'])
+            name += (
+                "_S{start:0" + str(self.last_result.total_count_digits) + "}"
+            ).format(start=self.last_query["start"])
 
-        if 'rows' in self.last_query:
-            name += '_R{0}'.format(self.last_query['rows'])
+        if "rows" in self.last_query:
+            name += "_R{0}".format(self.last_query["rows"])
 
         output_dir.mkdir(exist_ok=True)
 
-        output_path = output_dir / (name + '.json')
+        output_path = output_dir / (name + ".json")
         self.last_result.write(output_path)
 
+
 # -----
+
 
 class DatasetLoader:
     def __init__(self):
@@ -161,19 +170,19 @@ class DatasetLoader:
         self.query_result = None
         self.datasets = {}
         self.duplicates = []
-        
+
         self.total_count = 0
 
     def load(self, path: pathlib.Path, resources=False) -> QueryResult:
         self.path = path
 
-        self.query_result = QueryResult(json.load(path.open('r')))
+        self.query_result = QueryResult(json.load(path.open("r")))
         self.query_result.parse_results(resources=resources)
-        
+
         # Adding datasets one by one to filter duplicates.
         for dataset_id, dataset in self.query_result.datasets.items():
             if dataset_id in self.datasets:
-                print('id already exists', dataset_id)
+                print("id already exists", dataset_id)
                 self.duplicates.append(dataset)
                 continue
 
