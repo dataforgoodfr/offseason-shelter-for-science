@@ -252,7 +252,7 @@ class Manager:
 
         json = kwargs["json"] if "json" in kwargs else None
 
-        response = method(
+        response = request_method(
             url, headers=self.generate_headers(), params=params, json=json
         )
         if response.status_code != 200:
