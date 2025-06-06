@@ -14,23 +14,29 @@ BATCH_INSERT_LIMIT_DEFAULT = 2000
 BATCH_INSERT_LIMIT_MAX = 5000
 
 
+
 class TokenError(Exception):
     pass
+
 
 
 class UnknownTableError(Exception):
     pass
 
 
+
 class MappingError(Exception):
     pass
+
 
 
 class APIError(Exception):
     pass
 
 
+
 # -----
+
 
 
 class TokenValidator:
@@ -44,7 +50,7 @@ class TokenValidator:
         return self.valid
 
 
-TokenValidator.regex = re.compile("[a-zA-Z0-9_\-]{40}")
+TokenValidator.regex = re.compile("[a-zA-Z0-9_-]{40}")
 
 # -----
 
@@ -105,10 +111,7 @@ class Manager:
         offset=None,
         sort=None,
         where=None,
-    ):
-        """
-        :return: ListResult
-        """
+    ) -> ListResult:
         result = None
 
         response = self.table_request(
@@ -233,15 +236,16 @@ class Manager:
         )
 
     def request(self, method, url, **kwargs):
-        method = getattr(requests, method)
+        request_method = getattr(requests, method)
 
         params = {}
-        for key in kwargs.keys():
-            if kwargs[key] is not None:
-                if key == "fields":
-                    params[key] = ",".join(kwargs["fields"])
-                else:
-                    params[key] = kwargs[key]
+        if "fields" in kwargs and kwargs["fields"]:
+            params["fields"] = ",".join(kwargs["fields"])
+
+        # Selecting args explicitly
+        for key in ["limit", "offset", "sort", "where"]:
+            if key in kwargs and kwargs[key]:
+                params[key] = kwargs[key]
 
         if not params:
             params = None
@@ -252,7 +256,18 @@ class Manager:
             url, headers=self.generate_headers(), params=params, json=json
         )
         if response.status_code != 200:
-            raise APIError(response.status_code, response.json())
+            error_items = [
+                response.status_code,
+                response.json(),
+                method.upper(),
+                url,
+            ]
+            if params:
+                error_items.append(params)
+            if json:
+                error_items.append(json)
+
+            raise APIError(*error_items)
 
         return response.json()
 
