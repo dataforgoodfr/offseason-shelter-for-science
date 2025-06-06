@@ -19,7 +19,7 @@ source $VENV_PATH/bin/activate
 
 # Installing packages
 pip3 install \
-    black \
+    black pydantic \
     ckanapi requests tqdm
 
 if [ "$FIRST_ARG" == '--dev' ]

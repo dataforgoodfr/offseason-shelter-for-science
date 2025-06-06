@@ -4,6 +4,7 @@ import getpass
 import json
 import pathlib
 import re
+
 import requests
 from tqdm import tqdm
 
@@ -13,23 +14,29 @@ BATCH_INSERT_LIMIT_DEFAULT = 2000
 BATCH_INSERT_LIMIT_MAX = 5000
 
 
+
 class TokenError(Exception):
     pass
+
 
 
 class UnknownTableError(Exception):
     pass
 
 
+
 class MappingError(Exception):
     pass
+
 
 
 class APIError(Exception):
     pass
 
 
+
 # -----
+
 
 
 class TokenValidator:
@@ -234,14 +241,11 @@ class Manager:
         params = {}
         if "fields" in kwargs and kwargs["fields"]:
             params["fields"] = ",".join(kwargs["fields"])
-        if "limit" in kwargs and kwargs["limit"]:
-            params["limit"] = kwargs["limit"]
-        if "offset" in kwargs and kwargs["offset"]:
-            params["offset"] = kwargs["offset"]
-        if "sort" in kwargs and kwargs["sort"]:
-            params["sort"] = kwargs["sort"]
-        if "where" in kwargs and kwargs["where"]:
-            params["where"] = kwargs["where"]
+
+        # Selecting args explicitly
+        for key in ["limit", "offset", "sort", "where"]:
+            if key in kwargs and kwargs[key]:
+                params[key] = kwargs[key]
 
         if not params:
             params = None
