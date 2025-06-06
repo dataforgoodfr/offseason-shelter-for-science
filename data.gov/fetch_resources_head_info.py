@@ -1,6 +1,8 @@
 import argparse
+import csv
 import pathlib
 import time
+from enum import Enum
 
 import nocodb.tables
 from nocodb.api import Manager as APIManager
@@ -16,17 +18,35 @@ DEFAULT_DATA_DB_PATH = SCRIPT_DIR.parent / "data/db"
 DEFAULT_PROJECT_PATH = DEFAULT_DATA_DB_PATH / "projects.json"
 DEFAULT_PROJECT_NAME = "offseason_us_climate_data"
 
+CSV_DELIMITER = ","
+CSV_QUOTE_CHAR = '"'
 
-def process_resource(resource: dict):
+
+class ProcessStatus(Enum):
+
+    FAILED = "F"
+    SUCCESS = "S"
+
+
+def process_resource(raw_resource: dict) -> list:
     try:
-        resource = Resource.from_nocodb_dict(resource)
+        resource = Resource.from_nocodb_dict(raw_resource)
         head_info = resource.retrieve_head_info()
     except Exception:
-        return f"{resource.id},{resource.dg_data.id}," f"{None},{None}"
-    return (
-        f"{resource.id},{resource.dg_data.id},"
-        f"{head_info.content_length},{head_info.content_type}"
-    )
+        return [
+            raw_resource["Id"],
+            raw_resource["dg_id"],
+            None,
+            None,
+            ProcessStatus.FAILED.value,
+        ]
+    return [
+        resource.id,
+        resource.dg_data.id,
+        head_info.content_length,
+        head_info.content_type,
+        ProcessStatus.SUCCESS.value,
+    ]
 
 
 argparser = argparse.ArgumentParser()
@@ -48,7 +68,15 @@ total_rows = content.page_info.total_rows
 
 print(f"Prepare to handle {total_rows} resources...")
 with open(args.output_file, "a") as output_file:
-    print("id,dg_id,content_length,content_type", file=output_file)
+    csv_writer = csv.writer(
+        output_file,
+        delimiter=CSV_DELIMITER,
+        quotechar=CSV_QUOTE_CHAR,
+        quoting=csv.QUOTE_NONNUMERIC,
+    )
+    csv_writer.writerow(
+        ["id", "dg_id", "content_length", "content_type", "process_status"]
+    )
 for offset in range(0, total_rows, 25):
     request_threads = []
     if offset % 1000 == 0:
@@ -61,5 +89,11 @@ for offset in range(0, total_rows, 25):
 
     for request_thread in request_threads:
         with open(args.output_file, "a") as output_file:
-            print(request_thread.join(), file=output_file)
+            csv_writer = csv.writer(
+                output_file,
+                delimiter=CSV_DELIMITER,
+                quotechar=CSV_QUOTE_CHAR,
+                quoting=csv.QUOTE_NONNUMERIC,
+            )
+            csv_writer.writerow(request_thread.join())
 time.sleep(5)  # Just make sure all threads are over
