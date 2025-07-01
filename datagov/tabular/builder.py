@@ -23,6 +23,7 @@ class Builder:
         self.organizations = {}
         self.datasets = {}
         self.resources = {}
+        self.assets = {}
 
     def get_engine(self) -> str:
         if self.format not in _ENGINE_MAPPING:
@@ -34,6 +35,7 @@ class Builder:
             self.organizations[organization_id] = dataset.organization
             self.datasets[organization_id] = {}
             self.resources[organization_id] = {}
+            self.assets[organization_id] = {}
 
         self.datasets[organization_id][dataset.id] = dataset
 
@@ -56,6 +58,9 @@ class Builder:
             resource_df = self.create_data_frame(
                 organization_id, self.resources, fields=self.resource_fields
             )
+            assets_df = self.create_data_frame(
+                organization_id, self.assets, fields=["id", "name", "url"]
+            )
 
             if self.datasets[organization_id]:
                 output_dir.mkdir(exist_ok=True)
@@ -73,6 +78,11 @@ class Builder:
                     )
                     resource_df.to_csv(
                         output_dir / f"{filename}_resource.{self.ext}",
+                        encoding="utf-8",
+                        index=False,
+                    )
+                    assets_df.to_csv(
+                        output_dir / f"{filename}_asset.{self.ext}",
                         encoding="utf-8",
                         index=False,
                     )

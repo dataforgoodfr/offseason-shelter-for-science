@@ -1,0 +1,7 @@
+services:
+  rescue-api:
+    volumes:
+      - .:/app
+    environment:
+      - PYTHONPATH=/app:/app/rescue_db
+    command: uv run fastapi dev rescue_api/main.py --port 80
