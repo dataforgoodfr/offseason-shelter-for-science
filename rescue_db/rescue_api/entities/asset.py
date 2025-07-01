@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from rescue_api.entities.base_entity import BaseRescueModel
 
 

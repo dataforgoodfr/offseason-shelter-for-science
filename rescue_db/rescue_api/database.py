@@ -7,9 +7,9 @@ settings = get_settings()
 
 SQLALCHEMY_DATABASE_URL = (
     f"postgresql://{settings.postgres_user}:{settings.postgres_password}"
-    f"@localhost:5432/{settings.postgres_db}"
+    f"@{settings.postgres_host}:5432/{settings.postgres_db}"
 )
-
+# print(f"SQLALCHEMY_DATABASE_URL: {SQLALCHEMY_DATABASE_URL}")  # Debugging line
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()

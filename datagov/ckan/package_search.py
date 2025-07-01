@@ -7,12 +7,14 @@ from tqdm import tqdm
 
 from ckanapi import RemoteCKAN
 
-from .dataset import Dataset
+from .model_manager import ModelManager
 
+from rescue_db.rescue_api.models.organization import Organization
 
 class QueryResult:
-    def __init__(self, packages):
+    def __init__(self, packages, model_manager: ModelManager = None):
         self.packages = packages
+        self.model_manager = model_manager if model_manager else ModelManager()
 
         self.total_count = packages["count"] if "count" in packages else None
 
@@ -23,17 +25,9 @@ class QueryResult:
         if self.total_count:
             self.total_count_digits = len(str(self.total_count))
 
-        self.datasets = {}
-
     def parse_results(self, resources=False):
-        for result in self.packages["results"]:
-            self.add_dataset(result["id"], Dataset(result, load_resources=resources))
-
-    def add_dataset(self, dataset_id, result: Dataset, exists_ok=False):
-        if not exists_ok and dataset_id in self.datasets:
-            raise Exception("id already exists", dataset_id)
-
-        self.datasets[dataset_id] = result
+        for dataset_obj in self.packages["results"]:
+            self.model_manager.create_dataset(dataset_obj, resources=resources)
 
     def is_empty(self) -> bool:
         return not self.count
@@ -165,9 +159,12 @@ class Searcher:
 
 
 class DatasetLoader:
-    def __init__(self):
+    def __init__(self, exists_ok=False):
         self.path = None
         self.query_result = None
+        self.exists_ok = exists_ok
+        self.model_manager = ModelManager(exists_ok=exists_ok)
+
         self.datasets = {}
         self.duplicates = []
 
@@ -176,17 +173,20 @@ class DatasetLoader:
     def load(self, path: pathlib.Path, resources=False) -> QueryResult:
         self.path = path
 
-        self.query_result = QueryResult(json.load(path.open("r")))
+        self.query_result = QueryResult(
+            json.load(path.open("r")),
+            model_manager=self.model_manager,
+        )
         self.query_result.parse_results(resources=resources)
 
         # Adding datasets one by one to filter duplicates.
-        for dataset_id, dataset in self.query_result.datasets.items():
-            if dataset_id in self.datasets:
-                print("id already exists", dataset_id)
-                self.duplicates.append(dataset)
-                continue
+        # for dataset_id, dataset in self.query_result.datasets.items():
+        #    if dataset_id in self.datasets:
+        #        print("id already exists", dataset_id)
+        #        self.duplicates.append(dataset)
+        #        continue
 
-            self.datasets[dataset_id] = dataset
+        #    self.datasets[dataset_id] = dataset
 
         if self.query_result.total_count > self.total_count:
             self.total_count = self.query_result.total_count

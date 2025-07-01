@@ -10,6 +10,7 @@ class Settings(BaseSettings):
 
     app_name: str = "Rescue API"
     version: str = "0.0.1"
+    postgres_host: str = "db"
     postgres_user: str
     postgres_password: str
     postgres_db: str
