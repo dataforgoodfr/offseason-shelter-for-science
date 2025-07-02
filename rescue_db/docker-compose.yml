@@ -15,7 +15,7 @@ services:
     environment:
       POSTGRES_USER: ${RESCUE_API_POSTGRES_USER:-user}
       POSTGRES_PASSWORD: ${RESCUE_API_POSTGRES_PASSWORD:-password}
-      POSTGRES_DB: ${RESCUE_API_POSTGRES_DB:-rescuedb}
+      POSTGRES_DB: ${RESCUE_API_POSTGRES_DB:-us_climate_data}
       PGUSER: ${RESCUE_API_POSTGRES_USER:-user}
     ports:
       - '5432:5432'
