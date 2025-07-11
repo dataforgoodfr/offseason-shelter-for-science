@@ -6,7 +6,7 @@ from rescue_api.database import Base
 from sqlalchemy import ForeignKey, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-_FILE_EXT_REGEX = re.compile(r".+\.([a-zA-Z7][a-zA-Z0-9]+)$")
+_FILE_EXT_REGEX = re.compile(r".+\.(tar.[zZ]|[a-zA-Z7][a-zA-Z0-9]+)$")
 _OTHER_AUTHORIZED_EXTENSIONS = ["geojson"]
 _REJECTED_EXTENSIONS = ["aspx", "htm", "html", "htmlx", "shtml"]
 
