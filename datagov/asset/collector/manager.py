@@ -18,20 +18,20 @@ class Manager:
 
             obj.attach_process(self.process)
 
-            self._collectors[obj_type] = obj      
-        
+            self._collectors[obj_type] = obj
+
         self.collect_count = 0
         self.collect_progress = None
 
-#     def add_item_pipeline(self, pipeline_cls, value, settings=None, collector_cls=None):
-#         if collector_cls:
-#             collector = self._collectors.get(collector_cls)
-#             if not collector:
-#                 raise ValueError(f"Collector class {collector_cls} not found.")
-#         else:
-#             for collector in self._collectors.values():
-#                 if isinstance(collector, ScrapyCollector):
-#                     collector.add_item_pipeline(pipeline_cls, value, settings)
+    #     def add_item_pipeline(self, pipeline_cls, value, settings=None, collector_cls=None):
+    #         if collector_cls:
+    #             collector = self._collectors.get(collector_cls)
+    #             if not collector:
+    #                 raise ValueError(f"Collector class {collector_cls} not found.")
+    #         else:
+    #             for collector in self._collectors.values():
+    #                 if isinstance(collector, ScrapyCollector):
+    #                     collector.add_item_pipeline(pipeline_cls, value, settings)
 
     def get_collector(self, url) -> Collector:
         # @todo Smart URL recognition handling
@@ -39,13 +39,15 @@ class Manager:
             if collector.check_url(url):
                 return collector
         return None
-    
+
     def collect_later(self, url, collection_name=None, collection_key=None) -> bool:
         result = False
 
         collector = self.get_collector(url)
         if collector:
-            collector.collect(url, collection_name=collection_name, collection_key=collection_key)
+            collector.collect(
+                url, collection_name=collection_name, collection_key=collection_key
+            )
             self.collect_count += 1
             result = True
 
@@ -54,10 +56,15 @@ class Manager:
     def collect(self, progress=False):
         if progress:
             from tqdm import tqdm
-            self.collect_progress = tqdm(total=self.collect_count, desc="Collecting assets")
+
+            self.collect_progress = tqdm(
+                total=self.collect_count, desc="Collecting assets"
+            )
 
             for crawler in self.process.crawlers:
-                crawler.signals.connect(self._on_spider_closed, signal=signals.spider_closed)
+                crawler.signals.connect(
+                    self._on_spider_closed, signal=signals.spider_closed
+                )
 
         self.process.start()
 

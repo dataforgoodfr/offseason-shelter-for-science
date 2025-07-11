@@ -21,7 +21,9 @@ class WebDirectorySpider(scrapy.Spider):
 
         collection = {}
         if self.collection_name:
-            collection[self.collection_key if self.collection_key else "name"] = self.collection_name
+            collection[self.collection_key if self.collection_key else "name"] = (
+                self.collection_name
+            )
 
         assets = []
         links = []
