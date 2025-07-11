@@ -13,7 +13,13 @@ class Organization(Base):
     dg_name: Mapped[str]
     dg_title: Mapped[str]
     dg_created: Mapped[datetime]
-    created_at: Mapped[datetime] = mapped_column(server_default=text("CURRENT_TIMESTAMP"))
-    updated_at: Mapped[datetime] = mapped_column(server_default=text("CURRENT_TIMESTAMP"), onupdate=text("NOW()"))
+    created_at: Mapped[datetime] = mapped_column(
+        server_default=text("CURRENT_TIMESTAMP")
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=text("CURRENT_TIMESTAMP"), onupdate=text("NOW()")
+    )
 
-    datasets = relationship("Dataset", back_populates="organization", cascade="all, delete-orphan")
+    datasets = relationship(
+        "Dataset", back_populates="organization", cascade="all, delete-orphan"
+    )

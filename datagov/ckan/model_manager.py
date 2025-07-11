@@ -8,6 +8,7 @@ from rescue_db.rescue_api.models.dataset import Dataset
 from rescue_db.rescue_api.models.resource import Resource
 from rescue_db.rescue_api.models.dataset_json import DatasetJson
 
+
 class ModelManager:
     # @todo : cache optimization. Only keep id and modification date.
     def __init__(self, exists_ok=False):
@@ -22,7 +23,7 @@ class ModelManager:
         Returns a list of organizations.
         """
         return list(self.organizations.values())
-    
+
     def get_datasets(self) -> list[Dataset]:
         """
         Returns a list of datasets.
@@ -54,9 +55,7 @@ class ModelManager:
 
         if dg_id in self.datasets:
             if not self.exists_ok:
-                raise Exception(
-                    f"Dataset {dg_id} already exists."
-                )
+                raise Exception(f"Dataset {dg_id} already exists.")
 
             if dg_metadata_modified > self.datasets[dg_id].dg_metadata_modified:
                 logging.warning(
@@ -64,14 +63,16 @@ class ModelManager:
                 )
                 dataset = self.datasets[dg_id]
                 dataset.dg_metadata_modified = dg_metadata_modified
-                dataset.json_data.content = json.dumps(obj, ensure_ascii=False, indent=2)
+                dataset.json_data.content = json.dumps(
+                    obj, ensure_ascii=False, indent=2
+                )
 
             else:
                 logging.warning(
                     f"Dataset {dg_id} already exists with a newer metadata_modified, skipping."
                 )
                 return self.datasets[dg_id]
-        
+
         if not dataset:
             dataset = Dataset()
             dataset.dg_id = obj["id"]
@@ -113,12 +114,12 @@ class ModelManager:
                 dataset.resources.append(resource)
 
         return dataset
-    
+
     def create_resource(self, obj) -> Resource:
         resource = None
         dg_id = obj["id"]
         dg_metadata_modified = obj["metadata_modified"]
-        
+
         if dg_id in self.resources:
             if not self.exists_ok:
                 raise Exception(f"Resource {dg_id} already exists.")
@@ -153,15 +154,11 @@ class ModelManager:
             if "resource_locator_protocol" in obj
             else None
         )
-        resource.dg_mimmetype = (
-            obj["mimetype"]
-            if "mimetype" in obj
-            else None
-        )
+        resource.dg_mimmetype = obj["mimetype"] if "mimetype" in obj else None
 
         resource.dg_state = obj["state"]
         resource.set_url(obj["url"])
 
-        resource.dg_created = obj["created"]       
+        resource.dg_created = obj["created"]
 
         return resource

@@ -32,20 +32,19 @@ for item in args.input.rglob("*/package_search*.json"):
             url = resource.url.lower()
             if not url in resource_url_mapping:
                 resource_url_mapping[url] = []
-            resource_url_mapping[url].append({
-                "path": relative_path,
-                "ds_id": dataset.id,
-                "res_id": resource.id,
-            })
+            resource_url_mapping[url].append(
+                {
+                    "path": relative_path,
+                    "ds_id": dataset.id,
+                    "res_id": resource.id,
+                }
+            )
 file_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 output_path = args.output / f"resource_url_mapping_{file_datetime}.json"
 
 with output_path.open("w") as output_file:
     json.dump(
-        {
-            "root": str(args.input),
-            "mapping": resource_url_mapping
-        },
+        {"root": str(args.input), "mapping": resource_url_mapping},
         output_file,
-        indent=4
+        indent=4,
     )
