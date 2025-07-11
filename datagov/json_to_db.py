@@ -42,7 +42,9 @@ loader = DatasetLoader(exists_ok=True)
 file_index = 0
 
 # First pass to count items.
-file_count = len([item for item in args.input.rglob("*.json") if path_regex.match(str(item))])
+file_count = len(
+    [item for item in args.input.rglob("*.json") if path_regex.match(str(item))]
+)
 
 db = next(database.get_db())
 progress = tqdm(total=file_count, desc="Processing files", unit="file")
@@ -61,7 +63,7 @@ for item in args.input.rglob("*.json"):
     #     for organization in organizations:
     #         db.merge(organization)
     #         db.commit()
-    
+
     progress.update(1)
 
 progress.close()
@@ -96,7 +98,7 @@ for organization in organizations:
         # Detaching datasets from organization to insert them in batches
         org_datasets = list(organization.datasets)  # Save the list
         organization.datasets = []
-        
+
         db.add(organization)
         db.commit()
 
@@ -105,7 +107,7 @@ for organization in organizations:
 
         for dataset in org_datasets:
             i += 1
-            
+
             dataset.organization = organization
             db.add(dataset)
             progress.update(1)
@@ -116,15 +118,14 @@ for organization in organizations:
                 for pending_dataset in pending_commit_datasets:
                     # Freeing memory
                     del pending_dataset
-        
+
         db.commit()
-    
+
     # Freeing memory
     del organization
 
 progress.close()
 
-    # Inserting every "batch size" file parsed
+# Inserting every "batch size" file parsed
 #    if (file_index % args.batch_size) == 0:
 #        print(file_index, "/", file_count)
-

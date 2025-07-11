@@ -11,6 +11,7 @@ from .model_manager import ModelManager
 
 from rescue_db.rescue_api.models.organization import Organization
 
+
 class QueryResult:
     def __init__(self, packages, model_manager: ModelManager = None):
         self.packages = packages

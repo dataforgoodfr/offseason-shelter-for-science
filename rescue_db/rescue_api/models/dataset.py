@@ -18,11 +18,22 @@ class Dataset(Base):
     access_direct_dl_count: Mapped[int]
     access_total_count: Mapped[int]
     organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"))
-    created_at: Mapped[datetime] = mapped_column(server_default=text("CURRENT_TIMESTAMP"))
-    updated_at: Mapped[datetime] = mapped_column(server_default=text("CURRENT_TIMESTAMP"), onupdate=text("NOW()"))
+    created_at: Mapped[datetime] = mapped_column(
+        server_default=text("CURRENT_TIMESTAMP")
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=text("CURRENT_TIMESTAMP"), onupdate=text("NOW()")
+    )
 
     # Relationships
     organization = relationship("Organization", back_populates="datasets")
-    resources = relationship("Resource", back_populates="dataset", cascade="all, delete-orphan")
+    resources = relationship(
+        "Resource", back_populates="dataset", cascade="all, delete-orphan"
+    )
 
-    json_data = relationship("DatasetJson", uselist=False, back_populates="dataset", cascade="all, delete-orphan")
+    json_data = relationship(
+        "DatasetJson",
+        uselist=False,
+        back_populates="dataset",
+        cascade="all, delete-orphan",
+    )
