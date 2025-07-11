@@ -10,6 +10,7 @@ _FILE_EXT_REGEX = re.compile(r".+\.(tar.[zZ]|[a-zA-Z7][a-zA-Z0-9]+)$")
 _OTHER_AUTHORIZED_EXTENSIONS = ["geojson"]
 _REJECTED_EXTENSIONS = ["aspx", "htm", "html", "htmlx", "shtml"]
 
+
 class Resource(Base):
     __tablename__ = "resources"
 
@@ -17,8 +18,12 @@ class Resource(Base):
     dg_id: Mapped[str] = mapped_column(unique=True, nullable=False)
     dg_name: Mapped[str]
     dg_description: Mapped[str]
-    dg_resource_locator_function: Mapped[str] = mapped_column("dg_resource_locator_function", nullable=True)
-    dg_resource_locator_protocol: Mapped[str] = mapped_column("dg_resource_locator_protocol", nullable=True)
+    dg_resource_locator_function: Mapped[str] = mapped_column(
+        "dg_resource_locator_function", nullable=True
+    )
+    dg_resource_locator_protocol: Mapped[str] = mapped_column(
+        "dg_resource_locator_protocol", nullable=True
+    )
     dg_mimetype: Mapped[str] = mapped_column("dg_mimetype", nullable=True)
     dg_state: Mapped[str]
     dg_created: Mapped[datetime]
@@ -26,12 +31,18 @@ class Resource(Base):
     dg_url: Mapped[str]
     resource_type: Mapped[str]
     dataset_id: Mapped[int] = mapped_column(ForeignKey("datasets.id"))
-    created_at: Mapped[datetime] = mapped_column(server_default=text("CURRENT_TIMESTAMP"))
-    updated_at: Mapped[datetime] = mapped_column(server_default=text("CURRENT_TIMESTAMP"), onupdate=text("NOW()"))
+    created_at: Mapped[datetime] = mapped_column(
+        server_default=text("CURRENT_TIMESTAMP")
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=text("CURRENT_TIMESTAMP"), onupdate=text("NOW()")
+    )
 
     # Relationships
     dataset = relationship("Dataset", back_populates="resources")
-    assets = relationship("Asset", back_populates="resource", cascade="all, delete-orphan")
+    assets = relationship(
+        "Asset", back_populates="resource", cascade="all, delete-orphan"
+    )
 
     def set_url(self, url: str):
         self.dg_url = url

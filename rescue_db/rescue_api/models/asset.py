@@ -11,8 +11,13 @@ class AssetKind(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(unique=True, nullable=False)
 
-    created_at: Mapped[datetime] = mapped_column(server_default=text("CURRENT_TIMESTAMP"))
-    updated_at: Mapped[datetime] = mapped_column(server_default=text("CURRENT_TIMESTAMP"), onupdate=text("NOW()"))
+    created_at: Mapped[datetime] = mapped_column(
+        server_default=text("CURRENT_TIMESTAMP")
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=text("CURRENT_TIMESTAMP"), onupdate=text("NOW()")
+    )
+
 
 class Asset(Base):
     __tablename__ = "assets"
@@ -23,8 +28,12 @@ class Asset(Base):
     resource_id: Mapped[int] = mapped_column(ForeignKey("resources.id"))
     size: Mapped[int] = mapped_column(BigInteger, nullable=True)
     mtime: Mapped[datetime] = mapped_column(nullable=True)
-    created_at: Mapped[datetime] = mapped_column(server_default=text("CURRENT_TIMESTAMP"))
-    updated_at: Mapped[datetime] = mapped_column(server_default=text("CURRENT_TIMESTAMP"), onupdate=text("NOW()"))
+    created_at: Mapped[datetime] = mapped_column(
+        server_default=text("CURRENT_TIMESTAMP")
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=text("CURRENT_TIMESTAMP"), onupdate=text("NOW()")
+    )
 
     # Relationships
     resource = relationship("Resource", back_populates="assets")
