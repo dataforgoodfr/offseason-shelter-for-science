@@ -7,8 +7,18 @@ PROJECT_PATH=$(dirname $SCRIPT_PATH)
 VENV_DIR=.venv
 VENV_PATH=$PROJECT_PATH/$VENV_DIR
 PYTHON_VERSION=3.10
+PYENV_VERSION=$(pyenv --version)
 
 cd $PROJECT_PATH
+
+# Install the python version with pyenv if pyenv is installed
+# This must always be run in the project folder
+if [[ "$PYENV_VERSION" =~ (pyenv )[0-9]\.[0-9]\.[0-9] ]]
+then
+  LATEST_PYTHON_VERSION=$(pyenv latest -k $PYTHON_VERSION)
+  pyenv install -s $LATEST_PYTHON_VERSION
+  pyenv local $LATEST_PYTHON_VERSION
+fi
 
 python3 -m venv $VENV_DIR
 
