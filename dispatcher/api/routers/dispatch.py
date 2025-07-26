@@ -24,6 +24,6 @@ async def mock_dispatch(payload: DispatchRequest):
         received_data=payload.dict(),
         mock_data=mock_dispatch
     )
-    print(f"mock_dispatch response: {distpatch_response}")    
+    print(f"mock_dispatch response: {distpatch_response}")
 
-    return distpatch_response#JSONResponse(content=distpatch_response)
+    return distpatch_response

@@ -1,0 +1,8 @@
+# /docker-compose.yml
+
+services:
+  dispatcher-rescue-api:
+    build: .
+    container_name: "dispatcher-api"
+    ports:
+      - "8001:80"
