@@ -1,10 +1,10 @@
-# Web Scraper Docker - Guide d'installation et d'utilisation
+# Web Scraper Docker - Installation and User Guide
 
-## Structure des répertoires
+## Directory Structure
 
 
 ```
-datagov/asset/                    # Répertoire racine pour le scraping
+datagov/asset/                    # Root Directory for Scraping
 ├── manager.py                  
 ├── collector.py
 ├── link_scraper.py
@@ -22,46 +22,42 @@ datagov/asset/                    # Répertoire racine pour le scraping
 └── README.md                  
 ```
 
-## Installation rapide
+## Quick Installation
 
-### 0. Prérequis
+### 0. Prerequisites
 
-Assurez-vous d'avoir installé :
+Make sure you have installed:
 - [Docker](https://docs.docker.com/get-docker/)
 - [Docker Compose](https://docs.docker.com/compose/install/)
 
-### 1. Vérifiez l'installation :
+### 1. Verify the installation:
 ```bash
 docker --version
 docker compose version
 ```
 
-Ces differentes commandes doivent se faire dans le repertoire racine du projet ou se trouve le docker compose
+These different commands must be executed in the project root directory where the docker compose file is located
 
-### 2. Construction de l'image Docker
+### 2. Build the Docker image
 ```bash
 docker compose build 
 ```
 
-### 3. Démarrer le service de scrapping
+### 3. Start the scraping service
 ```bash
 docker compose up
 ```
 
-
-### 4. Arrêt ou interruption du scraping
+### 4. Stop or interrupt the scraping
 ```bash
 docker stop web-scraper-app
 ```
 
-
-### 5. Logs de l'application
+### 5. Application logs
 ```bash
 docker compose logs web-scraper-app 
 ```
-ou
+or
 ```bash
-docker compose logs -f web-scraper-app  # En temps réel
+docker compose logs -f web-scraper-app  # Real-time
 ```
-
-
