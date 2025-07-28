@@ -15,7 +15,12 @@ from rescue_db.rescue_api import database
 
 from rescue_db.rescue_api.models.organization import Organization
 from rescue_db.rescue_api.models.dataset import Dataset
-from rescue_db.rescue_api.models.harvest_source import HarvestSource, HarvestSourceType, HarvestFrequency, HarvestSourceDataset
+from rescue_db.rescue_api.models.harvest_source import (
+    HarvestSource,
+    HarvestSourceType,
+    HarvestFrequency,
+    HarvestSourceDataset,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger()
@@ -30,10 +35,19 @@ DEFAULT_OUTPUT_DIR = _DATA_DIR / "output"
 _file_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
 argparser = argparse.ArgumentParser()
-argparser.add_argument("harvest_file", type=pathlib.Path, help="Path to the harvest source input file")
-argparser.add_argument("metadata_directory", type=pathlib.Path, help="Directory containing metadata files")
+argparser.add_argument(
+    "harvest_file", type=pathlib.Path, help="Path to the harvest source input file"
+)
+argparser.add_argument(
+    "metadata_directory", type=pathlib.Path, help="Directory containing metadata files"
+)
 # argparser.add_argument("metadata_file_regex", type=str, help="Regex pattern to match metadata files")
-argparser.add_argument("--log-level", "-L", default="INFO", help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)")
+argparser.add_argument(
+    "--log-level",
+    "-L",
+    default="INFO",
+    help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)",
+)
 args = argparser.parse_args()
 
 logger.setLevel(args.log_level.upper())
@@ -41,7 +55,9 @@ logger.setLevel(args.log_level.upper())
 args.harvest_file = args.harvest_file.resolve(strict=True)
 metadata_directory = args.metadata_directory.resolve(strict=True)
 if not metadata_directory.is_dir():
-    logger.error(f"Metadata directory {metadata_directory} does not exist or is not a directory.")
+    logger.error(
+        f"Metadata directory {metadata_directory} does not exist or is not a directory."
+    )
     exit(1)
 
 # Load harvest source data
@@ -54,8 +70,7 @@ db = next(database.get_db())
 # Loading harvest source types
 harvest_source_types = {}
 results = (
-    db
-    .query(HarvestSourceType)
+    db.query(HarvestSourceType)
     .options(load_only(HarvestSourceType.id, HarvestSourceType.name))
     .all()
 )
@@ -65,8 +80,7 @@ for hst in results:
 # Loading harvest frequencies
 harvest_frequencies = {}
 results = (
-    db
-    .query(HarvestFrequency)
+    db.query(HarvestFrequency)
     .options(load_only(HarvestFrequency.id, HarvestFrequency.name))
     .all()
 )
@@ -77,8 +91,7 @@ organizations = harvest_source_data["organizations"]
 
 for org_name, organization in organizations.items():
     org_result = (
-        db
-        .query(Organization)
+        db.query(Organization)
         .filter(Organization.dg_name == org_name)
         .options(load_only(Organization.id))
         .one_or_none()
@@ -102,7 +115,9 @@ for org_name, organization in organizations.items():
 
     json_harvest_sources = organization.get("harvest_sources")
 
-    for json_hs in tqdm(json_harvest_sources, desc=f"Processing harvest sources for {org_name}"):
+    for json_hs in tqdm(
+        json_harvest_sources, desc=f"Processing harvest sources for {org_name}"
+    ):
         dg_id = json_hs["id"]
 
         if dg_id in db_harvest_sources:
@@ -130,7 +145,9 @@ for org_name, organization in organizations.items():
             db.commit()
             harvest_source_types[harvest_source_type_str] = harvest_source_type.id
 
-        harvest_source.harvest_source_type_id = harvest_source_types[harvest_source_type_str]
+        harvest_source.harvest_source_type_id = harvest_source_types[
+            harvest_source_type_str
+        ]
 
         harvest_frequency_str = json_hs["freq"]
         if harvest_frequency_str not in harvest_frequencies:
@@ -156,7 +173,6 @@ for org_name, organization in organizations.items():
         .options(load_only(Dataset.id, Dataset.dg_id))
     )
 
-    
     db_datasets_dg_id = {}
     db_datasets_id = {}
     for ds in dataset_results:
@@ -177,8 +193,7 @@ for org_name, organization in organizations.items():
         .filter(Dataset.organization_id == org_id)
         .options(
             load_only(
-                HarvestSourceDataset.harvest_source_id,
-                HarvestSourceDataset.dataset_id
+                HarvestSourceDataset.harvest_source_id, HarvestSourceDataset.dataset_id
             )
         )
     )
@@ -192,7 +207,9 @@ for org_name, organization in organizations.items():
         # Create a mapping for quick reference
         db_harvest_source_datasets[hsd.dataset_id] = hsd.harvest_source_id
 
-    logger.info(f"Found {len(db_harvest_source_datasets)} harvest source datasets for organization {org_name}")
+    logger.info(
+        f"Found {len(db_harvest_source_datasets)} harvest source datasets for organization {org_name}"
+    )
 
     metadata_index = 0
 
@@ -204,7 +221,7 @@ for org_name, organization in organizations.items():
 
         with metadata_item.open("r", encoding="utf-8") as f:
             metadata = json.load(f)
-            
+
             if "results" not in metadata:
                 logger.warning(f"No results found in metadata file: {metadata_item}")
                 continue
@@ -215,7 +232,9 @@ for org_name, organization in organizations.items():
                 ds_dg_id = json_ds.get("id")
 
                 if not ds_dg_id in db_datasets_dg_id:
-                    logger.error(f"Dataset {ds_dg_id} not found in database for organization {org_name}")
+                    logger.error(
+                        f"Dataset {ds_dg_id} not found in database for organization {org_name}"
+                    )
                     exit(1)
 
                 harvest_source_dg_id = None
@@ -225,8 +244,13 @@ for org_name, organization in organizations.items():
                         break
 
                 # Check if dataset has a harvest source ID
-                if not harvest_source_dg_id or harvest_source_dg_id not in db_harvest_sources:
-                    logger.warning(f"Harvest source ID {harvest_source_dg_id} not found for dataset {json_ds.get('id')}")
+                if (
+                    not harvest_source_dg_id
+                    or harvest_source_dg_id not in db_harvest_sources
+                ):
+                    logger.warning(
+                        f"Harvest source ID {harvest_source_dg_id} not found for dataset {json_ds.get('id')}"
+                    )
                     continue
 
                 # Check if harvest source is known
@@ -235,36 +259,38 @@ for org_name, organization in organizations.items():
                     exit(1)
 
                 dataset = db_datasets_dg_id[ds_dg_id]
-                if dataset.harvest_source_id and dataset.harvest_source_id == db_harvest_sources[harvest_source_dg_id]:
-                    logger.debug(f"Dataset {ds_dg_id} is already associated with harvest source {harvest_source_dg_id}, skipping.")
+                if (
+                    dataset.harvest_source_id
+                    and dataset.harvest_source_id
+                    == db_harvest_sources[harvest_source_dg_id]
+                ):
+                    logger.debug(
+                        f"Dataset {ds_dg_id} is already associated with harvest source {harvest_source_dg_id}, skipping."
+                    )
                     continue
 
                 hs_ds_association = HarvestSourceDataset(
                     harvest_source_id=db_harvest_sources[harvest_source_dg_id],
-                    dataset_id=dataset.id
+                    dataset_id=dataset.id,
                 )
                 db.add(hs_ds_association)
 
-                db_harvest_source_datasets[dataset.id] = db_harvest_sources[harvest_source_dg_id]
+                db_harvest_source_datasets[dataset.id] = db_harvest_sources[
+                    harvest_source_dg_id
+                ]
 
-                logger.debug(f"Associated dataset {ds_dg_id} with harvest source {harvest_source_dg_id}")
-            logger.info(f"Processed {len(json_datasets)} datasets from metadata file {metadata_item}")
+                logger.debug(
+                    f"Associated dataset {ds_dg_id} with harvest source {harvest_source_dg_id}"
+                )
+            logger.info(
+                f"Processed {len(json_datasets)} datasets from metadata file {metadata_item}"
+            )
 
             metadata_index += 1
             if metadata_index % 100 == 0:
                 logger.info(f"Processed {metadata_index} metadata files so far.")
                 db.commit()
-        
+
         # Committing remaining associations
         if db.dirty:
             db.commit()
-
-                
-
-                
-
-    # First pass to count items.
-    # file_count = len(
-    #    [item for item in metadata_directory.rglob("*.json") if path_regex.match(str(item))]
-    #)
-
