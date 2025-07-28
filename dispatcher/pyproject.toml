@@ -1,0 +1,13 @@
+[project]
+name = "dispatcher-api"
+version = "0.1.0"
+description = "Assign a list of db to rescue to rescuer"
+readme = "README.md"
+requires-python = ">=3.9"
+
+dependencies = [
+    "fastapi[standard]>=0.116.1",
+    "pydantic>=2.11.7",
+    "pydantic_core>=2.33.2",
+    "uvicorn==0.35.0",
+]
