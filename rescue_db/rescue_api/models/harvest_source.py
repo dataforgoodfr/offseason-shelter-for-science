@@ -23,6 +23,7 @@ class HarvestSourceType(Base):
     # Relationships
     # harvest_sources = relationship("HarvestSource", back_populates="harvest_source_type")
 
+
 class HarvestFrequency(Base):
     __tablename__ = "harvest_frequencies"
 
@@ -47,8 +48,12 @@ class HarvestSource(Base):
     dg_source: Mapped[str]
     dg_created: Mapped[datetime]
     dg_total_datasets: Mapped[int]
-    harvest_source_type_id: Mapped[int] = mapped_column(ForeignKey("harvest_source_types.id"))
-    harvest_frequency_id: Mapped[int] = mapped_column(ForeignKey("harvest_frequencies.id"))
+    harvest_source_type_id: Mapped[int] = mapped_column(
+        ForeignKey("harvest_source_types.id")
+    )
+    harvest_frequency_id: Mapped[int] = mapped_column(
+        ForeignKey("harvest_frequencies.id")
+    )
     organization_id: Mapped[int] = mapped_column(ForeignKey("organizations.id"))
 
     created_at: Mapped[datetime] = mapped_column(
@@ -61,6 +66,7 @@ class HarvestSource(Base):
     # Relationships
     # harvest_source_type = relationship("HarvestSourceType", back_populates="harvest_sources")
 
+
 class HarvestSourceDataset(Base):
     __tablename__ = "harvest_source_dataset"
 
@@ -68,4 +74,8 @@ class HarvestSourceDataset(Base):
     harvest_source_id: Mapped[int] = mapped_column(ForeignKey("harvest_sources.id"))
     dataset_id: Mapped[int] = mapped_column(ForeignKey("datasets.id"))
 
-    __table_args__ = (UniqueConstraint("harvest_source_id", "dataset_id", name="uq_harvest_source_dataset"),)
+    __table_args__ = (
+        UniqueConstraint(
+            "harvest_source_id", "dataset_id", name="uq_harvest_source_dataset"
+        ),
+    )
