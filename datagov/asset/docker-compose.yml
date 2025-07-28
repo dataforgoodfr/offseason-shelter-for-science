@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  web-scraper:
+    build: .
+    container_name: web-scraper-app
+    restart: unless-stopped
+    volumes:
+      - ./output:/app/output
+      - ./logs:/app/logs
+    environment:
+      - PYTHONUNBUFFERED=1
+      - SCRAPY_SETTINGS_MODULE=settings
+
+      - SCRAPER_URL=https://www.ncei.noaa.gov/pub/data/hourly_precip-3240/
+      - COLLECTION_NAME=collection_name
+      - OUTPUT_FORMAT=json
+      - CONCURRENT_REQUESTS=32    # requêtes simultanées
+      - DOWNLOAD_DELAY=0        # attente entre requêtes
+
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=scraper_db
+      - POSTGRES_USER=scraper_user
+      - POSTGRES_PASSWORD=scraper_password
+      
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+
+    command: python main.py
+  
+  postgres:
+    image: postgres
+    container_name: scraper-db
+    restart: always
+    environment:
+      POSTGRES_DB: scraper_db
+      POSTGRES_USER: scraper_user
+      POSTGRES_PASSWORD: scraper_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5422:5432"
+
+  redis:
+    image: redis
+    container_name: scraper-redis
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  postgres_data:
+  redis_data:
