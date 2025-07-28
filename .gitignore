@@ -177,4 +177,3 @@ cython_debug/
 trash/
 tmp/
 temp/
-rescue_db/mon_script_de_lancement.sh
