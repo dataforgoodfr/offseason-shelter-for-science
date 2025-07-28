@@ -177,3 +177,8 @@ cython_debug/
 trash/
 tmp/
 temp/
+
+
+
+logs/
+output/

@@ -4,7 +4,7 @@
 
 
 ```
-datago/asset/                    # Répertoire racine pour le scraping
+datagov/asset/                    # Répertoire racine pour le scraping
 ├── manager.py                  
 ├── collector.py
 ├── link_scraper.py
@@ -57,11 +57,11 @@ docker stop web-scraper-app
 
 ### 5. Logs de l'application
 ```bash
-docker compose logs web-scraper 
+docker compose logs web-scraper-app 
 ```
 ou
 ```bash
-docker compose logs -f web-scraper  # En temps réel
+docker compose logs -f web-scraper-app  # En temps réel
 ```
 
 

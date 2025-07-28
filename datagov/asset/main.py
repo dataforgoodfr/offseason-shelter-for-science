@@ -53,8 +53,17 @@ def main():
         }
     }
     
+    # Configuration Redis
+    redis_config = {
+        'host': 'redis',        # Adresse Redis
+        'port': 6379,              # Port Redis
+        'db': 0,                   
+        'password': None,          
+        'expiry_hours': 24         
+    }
+    
     try:
-        manager = Manager(settings)
+        manager = Manager(settings, redis_config)
         
         if manager.collect_later(base_url, collection_name=collection_name):
             logger.info(f"Scraping programmé pour: {base_url}")
