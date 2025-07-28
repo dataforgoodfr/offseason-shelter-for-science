@@ -1,48 +1,32 @@
 # coding: utf-8
-
 from scrapy import signals
 from scrapy.crawler import CrawlerProcess
-
-from .collector import Collector, ScrapyCollector
-from .web_directory import NCEIWebDirectory
-
+from collector import Collector, ScrapyCollector
+from link_scraper import LinkScraperCollector
 
 class Manager:
     def __init__(self, settings: dict):
-        collectors = [NCEIWebDirectory]
+        collectors = [LinkScraperCollector]
         self._collectors = {}
         self.process = CrawlerProcess(settings)
+        
         for collector_cls in collectors:
             obj = collector_cls()
             obj_type = obj.__module__ + "." + obj.__class__.__qualname__
-
             obj.attach_process(self.process)
-
             self._collectors[obj_type] = obj
-
+            
         self.collect_count = 0
         self.collect_progress = None
 
-    #     def add_item_pipeline(self, pipeline_cls, value, settings=None, collector_cls=None):
-    #         if collector_cls:
-    #             collector = self._collectors.get(collector_cls)
-    #             if not collector:
-    #                 raise ValueError(f"Collector class {collector_cls} not found.")
-    #         else:
-    #             for collector in self._collectors.values():
-    #                 if isinstance(collector, ScrapyCollector):
-    #                     collector.add_item_pipeline(pipeline_cls, value, settings)
-
-    def get_collector(self, url) -> Collector:
-        # @todo Smart URL recognition handling
+    def get_collector(self, url):
         for collector in self._collectors.values():
             if collector.check_url(url):
                 return collector
         return None
 
-    def collect_later(self, url, collection_name=None, collection_key=None) -> bool:
+    def collect_later(self, url, collection_name=None, collection_key=None):
         result = False
-
         collector = self.get_collector(url)
         if collector:
             collector.collect(
@@ -50,26 +34,25 @@ class Manager:
             )
             self.collect_count += 1
             result = True
-
         return result
 
     def collect(self, progress=False):
         if progress:
             from tqdm import tqdm
-
             self.collect_progress = tqdm(
-                total=self.collect_count, desc="Collecting assets"
+                total=self.collect_count, desc="Collecting links and files"
             )
-
+            
             for crawler in self.process.crawlers:
                 crawler.signals.connect(
                     self._on_spider_closed, signal=signals.spider_closed
                 )
-
+        
         self.process.start()
-
+        
         if progress:
             self.collect_progress.close()
 
     def _on_spider_closed(self, spider, reason):
-        self.collect_progress.update()
+        if self.collect_progress:
+            self.collect_progress.update()
