@@ -1,0 +1,23 @@
+[
+  {
+    "id": "d1",
+    "name": "Dataset 1",
+    "size_mb": 512,
+    "priority": 2,
+    "url": "magnet:?xt=urn:btih:d1"
+  },
+  {
+    "id": "d2",
+    "name": "Dataset 2",
+    "size_mb": 256,
+    "priority": 7,
+    "url": "magnet:?xt=urn:btih:d2"
+  },
+  {
+    "id": "d3",
+    "name": "Dataset 3",
+    "size_mb": 156,
+    "priority": 4,
+    "url": "magnet:?xt=urn:btih:d2"
+  }
+]
