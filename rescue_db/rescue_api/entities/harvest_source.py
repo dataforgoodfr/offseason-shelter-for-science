@@ -5,11 +5,14 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 from rescue_api.entities.base_entity import BaseRescueModel
 
+
 class HarvestSourceType(BaseRescueModel):
     name: str
 
+
 class HarvestFrequency(BaseRescueModel):
     name: str
+
 
 # CKAN Harvest Source Entity
 class HarvestSource(BaseRescueModel):
@@ -22,6 +25,7 @@ class HarvestSource(BaseRescueModel):
     harvest_source_type_id: int
     harvest_frequency_id: int
     organization_id: int
+
 
 class HarvestSourceDataset(BaseModel):
     _id: int = Field(alias="id")
