@@ -5,11 +5,11 @@ Install docker
 https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository
 ```
 
-# Start service
+# Start service (dev)
 
 Launch docker
 ```
-bash -v ./run_docker.sh
+bash -v ./run_docker_dev.sh
 ```
 
 # API documentation
