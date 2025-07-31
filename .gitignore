@@ -1,30 +1,3 @@
-### Ajoutez ces règles SPECIFIQUES À CONDA en tête de votre fichier .gitignore existant ###
-
-# Environnements Conda (à ajouter dans la section "Environments" existante)
-/miniconda3/
-/anaconda3/
-/.conda/
-/conda-env/
-/envs/
-/conda/
-*.conda
-conda-meta/
-
-# Fichiers de configuration Conda
-.condarc
-environment.yml
-conda.yml
-.snakemake/
-
-# Fichiers cachés Conda
-.conda_build/
-.conda_envs/
-.continuum/
-
-# Lock files Conda
-conda-lock.yml
-*.conda-lock
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

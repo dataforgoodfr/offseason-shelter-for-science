@@ -1,13 +1,3 @@
 # offseason-us-climate-data
 
-## Install
-
-```bash
-install/install.sh
-```
-
-## Activate the virtual environment
-
-```bash
-source .venv/bin/activate
-```
+Each backend service runs within a Docker container.
