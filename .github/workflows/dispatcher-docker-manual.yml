@@ -1,0 +1,19 @@
+name: Build and publish docker image for
+
+on:
+  workflow_dispatch:
+
+jobs:
+  dispatcher-docker-manual:
+    runs-on: ubuntu-latest
+    env:
+      GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+    defaults:
+      run:
+        shell: bash -l {0}
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Build and publish Docker image
+      run: bash ./dispatcher/publish_image.sh
