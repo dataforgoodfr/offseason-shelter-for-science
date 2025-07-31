@@ -1,10 +1,14 @@
 from datetime import datetime
+from typing import List
 import re
 from urllib.parse import urlparse
 
 from rescue_api.database import Base
 from sqlalchemy import ForeignKey, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from .asset_resource import asset_resource
+
 
 _FILE_EXT_REGEX = re.compile(r".+\.(tar.[zZ]|[a-zA-Z7][a-zA-Z0-9]+)$")
 _OTHER_AUTHORIZED_EXTENSIONS = ["geojson"]
@@ -40,9 +44,7 @@ class Resource(Base):
 
     # Relationships
     dataset = relationship("Dataset", back_populates="resources")
-    assets = relationship(
-        "Asset", back_populates="resource", cascade="all, delete-orphan"
-    )
+    assets: Mapped[List["Asset"]] = relationship(secondary=asset_resource, back_populates="resources", cascade="all, delete")
 
     def set_url(self, url: str):
         self.dg_url = url
