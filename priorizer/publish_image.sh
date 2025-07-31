@@ -7,7 +7,7 @@ APPLICATION_DIR=$(dirname "$(readlink -f "$0")")
 cd "$APPLICATION_DIR" || exit 1
 
 # Image name
-IMAGE_NAME="ghcr.io/dataforgoodfr/us_climate_data_dispatcher"
+IMAGE_NAME="ghcr.io/dataforgoodfr/us_climate_data_priorizer"
 
 # Build docker image
 docker build -t $IMAGE_NAME:latest .

@@ -1,0 +1,8 @@
+# /docker-compose.yml
+
+services:
+  priorizer-api:
+    build: .
+    container_name: "priorizer-api"
+    ports:
+      - "8002:80"
