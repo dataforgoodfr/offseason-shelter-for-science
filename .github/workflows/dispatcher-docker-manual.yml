@@ -21,7 +21,7 @@ jobs:
         # registry: ghcr.io
         registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}
-        password: ${{ secrets.GHCR_TOKEN }}
+        password: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Build and publish Docker image manually
       run: bash ./dispatcher/publish_image.sh
