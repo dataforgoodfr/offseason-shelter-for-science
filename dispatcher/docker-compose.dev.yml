@@ -2,6 +2,4 @@ services:
   dispatcher-rescue-api:
     volumes:
       - .:/app
-    #environment:
-    #  - PYTHONPATH=/app:/app/api
-    command: uv run fastapi dev api/dispatcher_service.py --host 0.0.0.0 --port 8080
+    command: uv run fastapi dev api/dispatcher_service.py --host 0.0.0.0 --port 8081
