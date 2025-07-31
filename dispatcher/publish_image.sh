@@ -19,10 +19,6 @@ if [ $? -ne 0 ]; then
 else
     echo "Docker build succeeded."
 
-    # Create a personal Github token with write:packages permission
-    # cf https://docs.github.com/fr/packages/working-with-a-github-packages-registry/working-with-the-container-registry
-    docker login ghcr.io -u USERNAME -p $GHCR_TOKEN
-
     # Push the image to GitHub Container Registry
     docker push $IMAGE_NAME --all-tags
 fi
