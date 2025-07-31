@@ -1,0 +1,30 @@
+name: Build and publish docker image for priorizer
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'priorizer/**'
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  priorizer-docker:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Log in to GHCR
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build and publish Docker image
+      run: bash ./priorizer/publish_image.sh
