@@ -3,11 +3,14 @@ name: Build and publish docker image for dispatcher manually
 on:
   workflow_dispatch:
 
+env:
+  REGISTRY: ghcr.io
+#   GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+
 jobs:
   dispatcher-docker-manual:
     runs-on: ubuntu-latest
-    # env:
-    #   GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+    
     defaults:
       run:
         shell: bash -l {0}
@@ -18,7 +21,6 @@ jobs:
     - name: Log in to GHCR
       uses: docker/login-action@v3
       with:
-        # registry: ghcr.io
         registry: ${{ env.REGISTRY }}
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
