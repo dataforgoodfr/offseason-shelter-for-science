@@ -7,4 +7,6 @@ WORKDIR /app
 RUN uv sync --frozen --no-cache --no-dev
 RUN apk add --no-cache --virtual .build-deps curl
 
-CMD ["uv", "run", "fastapi", "main.py", "--host", "0.0.0.0", "--port", "80"]
+EXPOSE 8082
+
+CMD ["uv", "run", "fastapi", "run", "main.py", "--host", "0.0.0.0", "--port", "8082"]
