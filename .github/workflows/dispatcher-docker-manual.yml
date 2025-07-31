@@ -5,12 +5,10 @@ on:
 
 env:
   REGISTRY: ghcr.io
-#   GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
 
 jobs:
   dispatcher-docker-manual:
     runs-on: ubuntu-latest
-    
     defaults:
       run:
         shell: bash -l {0}
