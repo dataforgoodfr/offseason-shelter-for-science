@@ -178,6 +178,8 @@ trash/
 tmp/
 temp/
 
+# Backup files
+*.bak
 
 
 logs/

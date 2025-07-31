@@ -7,4 +7,4 @@ WORKDIR /app
 RUN uv sync --frozen --no-cache --no-dev
 RUN apk add --no-cache --virtual .build-deps curl
 
-CMD ["uv", "run", "fastapi", "api/dispatcher_service.py", "--host", "0.0.0.0", "--port", "80"]
+CMD ["uv", "run", "fastapi", "api/dispatcher_service.py", "--host", "0.0.0.0", "--port", "8080"]
