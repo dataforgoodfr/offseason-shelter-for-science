@@ -7,7 +7,9 @@ CREATE TABLE IF NOT EXISTS public.mvp_downloader_library (
 	deeplink TEXT,
 	deeplink_file_size BIGINT,
 	magnet_link TEXT,
-	defective_link_flag BOOLEAN
+	defective_link_flag BOOLEAN,
+	created_at TIMESTAMP DEFAULT NOW(),
+	updated_at TIMESTAMP DEFAULT NOW()
 );
 
 -- Preparation of the data: we take all the resources
