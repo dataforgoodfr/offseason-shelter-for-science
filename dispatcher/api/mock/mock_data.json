@@ -1,16 +1,22 @@
-{
-   "https://data.chhs.ca.gov/dataset/5a281abf-1730-43b0-b17b-ac6a35db5760/resource/724c6fd8-a645-4e52-b63f-32631a20db5d/download/adult-depression-lghc-indicator-24.csv": [
-            {
-                "path": "data_gov_ca-gov_20250601_120256/package_search_S0000.json",
-                "ds_id": "1e5add2c-88db-4a35-b23d-289db927f57a",
-                "res_id": "907ca678-6428-4dca-9022-ec4dee9f8e37"
-            }
-        ],
-    "https://letsgethealthy.ca.gov/goals/living-well/mental-health-and-well-being-reducing-adult-depression/": [
-            {
-                "path": "data_gov_ca-gov_20250601_120256/package_search_S0000.json",
-                "ds_id": "1e5add2c-88db-4a35-b23d-289db927f57a",
-                "res_id": "198759ae-9144-49be-bff2-f2089e33270b"
-            }
-        ]
-}
+[
+    {
+        "path": "data_gov_ca-gov_20250601_120256/package_search_S0000.json",
+        "name": "CHHS CA mock data 1",
+        "priority": 1,
+        "size_mb": 4.5,
+        "ds_id": "1e5add2c-88db-4a35-b23d-289db927f57a",
+        "res_id": "907ca678-6428-4dca-9022-ec4dee9f8e37",
+        "asset_id": "45357",
+        "url": "https://data.chhs.ca.gov/dataset/5a281abf-1730-43b0-b17b-ac6a35db5760/resource/724c6fd8-a645-4e52-b63f-32631a20db5d/download/adult-depression-lghc-indicator-24.csv"
+    },
+    {
+        "path": "data_gov_ca-gov_20250601_120256/package_search_S0000.json",
+        "name": "CHHS CA mock data 2",
+        "priority": 1,
+        "size_mb": 16.2,
+        "ds_id": "1e5add2c-88db-4a35-b23d-289db927f57a",
+        "res_id": "198759ae-9144-49be-bff2-f2089e33270b",
+        "asset_id": "745326",
+        "url": "https://letsgethealthy.ca.gov/goals/living-well/mental-health-and-well-being-reducing-adult-depression/"
+    }
+]
