@@ -41,7 +41,7 @@ async def dispatch(request: DispatchRequest):
     app_state._logger.info(result)
     if not result:
         raise HTTPException(
-            status_code=404,
+            status_code=422,
             detail="No available assets matching the criteria"
         )
 
