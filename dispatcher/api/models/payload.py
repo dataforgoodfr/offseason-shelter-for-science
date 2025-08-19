@@ -49,6 +49,6 @@ class DispatchResponse(BaseModel):
 
 
 class Rescues(BaseModel):
-    rescuer_id: int
-    message: str
-    assets: List[AssetModel]
+    rescuer_id: int = Field(..., description="Rescuer id")
+    message: str = Field(..., description="Message given by the application")
+    assets: List[AssetModel] = Field(..., description="List of assets for which the rescue is over")
