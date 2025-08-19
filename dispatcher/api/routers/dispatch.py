@@ -1,7 +1,7 @@
 from models.state import app_state
 from fastapi import HTTPException, APIRouter
 from fastapi.responses import JSONResponse
-from models.payload import DispatchRequest, DispatchResponse
+from models.payload import DispatchRequest, DispatchResponse, Rescues
 import json
 from os.path import join, dirname
 
@@ -20,15 +20,15 @@ async def mock_dispatch(request: DispatchRequest):
     with open(join(dirname(__file__), '..', 'mock', 'mock_data.json')) as f:
         mock_dispatch = json.load(f)
 
-    distpatch_response = DispatchResponse(
+    dispatch_response = DispatchResponse(
         status="success",
         message="Request received and processed",
         received_data=request.dict(),
         asset=mock_dispatch
     )
-    print(f"mock_dispatch response: {distpatch_response}")
+    print(f"mock_dispatch response: {dispatch_response}")
 
-    return distpatch_response
+    return dispatch_response
 
 @router.post('/dispatch', response_model=DispatchResponse)
 async def dispatch(request: DispatchRequest):
@@ -45,12 +45,16 @@ async def dispatch(request: DispatchRequest):
             detail="No available assets matching the criteria"
         )
 
-    distpatch_response = DispatchResponse(
+    dispatch_response = DispatchResponse(
         status="success",
         message="Request received and processed",
         received_data=request.dict(),
         asset=result["assets"]
     )
-    print(f"Dispatch response: {distpatch_response}")
+    print(f"Dispatch response: {dispatch_response}")
 
-    return distpatch_response
+    return dispatch_response
+
+@router.put('/rescues')
+async def update_rescues(rescues: Rescues):
+    return {"rescues": rescues.dict()}
