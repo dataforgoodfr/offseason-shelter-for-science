@@ -6,6 +6,7 @@ from sqlalchemy import BigInteger, ForeignKey, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .asset_resource import asset_resource
+from .rescues import rescues
 
 
 class AssetKind(Base):
@@ -38,4 +39,5 @@ class Asset(Base):
     )
 
     # Relationships
+    rescuers: Mapped[List["Rescuer"]] = relationship(secondary=rescues, back_populates="assets")
     resources: Mapped[List["Resource"]] = relationship(secondary=asset_resource, back_populates="assets")
