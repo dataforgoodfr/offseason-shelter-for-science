@@ -8,4 +8,4 @@ RUN apk add --no-cache postgresql-libs
 RUN apk add --no-cache --virtual .build-deps gcc musl-dev postgresql-dev
 RUN uv sync --frozen --no-cache --no-dev
 
-CMD ["uv", "run", "fastapi", "run", "rescue_api/main.py", "--port", "80"]
+CMD ["uv", "run", "fastapi", "run", "rescue_api/main.py", "--host", "0.0.0.0", "--port", "80"]
