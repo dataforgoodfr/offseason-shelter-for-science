@@ -57,4 +57,13 @@ async def dispatch(request: DispatchRequest):
 
 @router.put('/rescues')
 async def update_rescues(rescues: Rescues):
-    return {"rescues": rescues.dict()}
+    app_state._logger.info("________Update rescues after asset downloads")
+
+    # Call dispatcher logic
+    result = app_state._dispatcher.update_rescues_in_db(
+        rescuer_id=rescues.rescuer_id,
+        assets=rescues.assets,
+    )
+    app_state._logger.info(result)
+
+    return result
