@@ -157,54 +157,102 @@ class Dispatcher:
             "allocation_id": str(uuid.uuid4())
         }
 
-    def update_rescues_in_db(self, rescuer_id: int, assets: List[AssetModel]) -> Dict:
+    def upsert_rescues(self, rescuer_id: int, assets: List[AssetModel]) -> Dict:
+        rescues_to_upsert = self._prepare_rescues_to_upsert(rescuer_id=rescuer_id, assets=assets)
         rescues_from_db = self._load_json(self.rescues_file)
-        downloaded_asset_ids = [int(asset.asset_id) for asset in assets]
 
-        rescues_to_update = [
-            rescue
-            for rescue in rescues_from_db
-            if rescue["rescuer_id"] == rescuer_id and rescue["asset_id"] in downloaded_asset_ids
-        ]
-
-        rescues_not_to_update = [rescue for rescue in rescues_from_db if rescue not in rescues_to_update]
-        updated_rescues = self._update_rescues(rescues=rescues_to_update, assets=assets)
+        rescues = self._upsert_rescues(
+            rescuer_id=rescuer_id,
+            rescues_from_db=rescues_from_db,
+            rescues_to_upsert=rescues_to_upsert,
+        )
 
         try:
-            self._save_json(self.rescues_file, rescues_not_to_update + updated_rescues)
+            self._save_json(self.rescues_file, rescues)
         except Exception as e:
             print(e)
             return {
                 "action": "Update magnet link and status of rescues",
                 "rescuer_id": rescuer_id,
-                "asset_ids": downloaded_asset_ids,
+                # "asset_ids": downloaded_asset_ids,
                 "action_status": "FAIL",
             }
         else:
             return {
                 "action": "Update magnet link and status of rescues",
                 "rescuer_id": rescuer_id,
-                "asset_ids": downloaded_asset_ids,
+                # "asset_ids": downloaded_asset_ids,
                 "action_status": "SUCCESS",
             }
 
-    def _update_rescues(self, rescues: List[Dict], assets: List[AssetModel]) -> List[Dict]:
+
+    @staticmethod
+    def _prepare_rescues_to_upsert(rescuer_id: int, assets: List[AssetModel]) -> List[Dict]:
+        rescues_to_upsert = []
+        for asset in assets:
+            rescue = {
+                "asset_id": int(asset.asset_id),
+                "rescuer_id": rescuer_id,
+                "magnet_link": asset.magnet_link,
+                "status": asset.status,
+            }
+            rescues_to_upsert.append(rescue)
+
+        return rescues_to_upsert
+
+
+    def _upsert_rescues(self, rescuer_id: int, rescues_from_db: List[Dict], rescues_to_upsert: List[Dict]) -> List[Dict]:
+        downloaded_asset_ids = [rescue["asset_id"] for rescue in rescues_to_upsert]
+        rescues_to_update = [
+            rescue
+            for rescue in rescues_from_db
+            if rescue["rescuer_id"] == rescuer_id and rescue["asset_id"] in downloaded_asset_ids
+        ]
+
+        updated_rescues = self._update_rescues(
+            rescues_to_update=rescues_to_update,
+            rescues_to_upsert=rescues_to_upsert,
+        )
+        rescues_not_to_update = [rescue for rescue in rescues_from_db if rescue not in rescues_to_update]
+        rescues_to_insert = self._identify_rescues_to_insert(
+            rescues_from_db=rescues_from_db,
+            rescues_to_upsert=rescues_to_upsert,
+        )
+
+        return rescues_not_to_update + updated_rescues + rescues_to_insert
+
+
+    def _update_rescues(self, rescues_to_update: List[Dict], rescues_to_upsert: List[Dict]) -> List[Dict]:
         updated_rescues = []
-        for rescue in rescues:
-            asset = self._find_corresponding_asset(asset_id=rescue["asset_id"], assets=assets)
-            rescue["magnet_link"] = asset.magnet_link
-            rescue["status"] = asset.status.value
+        for rescue in rescues_to_update:
+            matching_rescue = self._find_matching_rescue(asset_id=rescue["asset_id"], rescues=rescues_to_upsert)
+            rescue["magnet_link"] = matching_rescue["magnet_link"]
+            rescue["status"] = matching_rescue["status"]
             updated_rescues.append(rescue)
 
         return updated_rescues
 
+
     @staticmethod
-    def _find_corresponding_asset(asset_id: int, assets: List[AssetModel]) -> AssetModel:
-        for asset in assets:
-            if asset_id == int(asset.asset_id):
-                return asset
+    def _find_matching_rescue(asset_id: int, rescues: List[Dict]) -> List[Dict]:
+        rescuer_id = rescues[0]["rescuer_id"]
+        for rescue in rescues:
+            if asset_id == rescue["asset_id"]:
+                return rescue
 
         raise ValueError(
-            f"The asset from the database with the ID={asset_id} couldn't be matched "
+            f"The rescue from the database with asset_id={asset_id} and rescuer_id={rescuer_id} couldn't be matched "
             f"with the ones provided by the app."
         )
+
+
+    @staticmethod
+    def _identify_rescues_to_insert(
+            rescuer_id: int,
+            rescues_from_db: List[Dict],
+            rescues_to_upsert: List[Dict]
+    ) -> List[Dict]:
+        asset_ids_from_db = [rescue["asset_id"] for rescue in rescues_from_db if rescue["rescuer_id"] == rescuer_id]
+        return [rescue for rescue in rescues_to_upsert if rescue["asset_id"] not in asset_ids_from_db]
+
+
