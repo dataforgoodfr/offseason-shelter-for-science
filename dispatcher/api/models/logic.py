@@ -158,8 +158,6 @@ class Dispatcher:
         }
 
     def update_rescues_in_db(self, rescuer_id: int, assets: List[AssetModel]) -> Dict:
-        print("Inside 'update_rescues_in_db'")
-
         rescues_from_db = self._load_json(self.rescues_file)
         downloaded_asset_ids = [int(asset.asset_id) for asset in assets]
 
@@ -171,9 +169,6 @@ class Dispatcher:
 
         rescues_not_to_update = [rescue for rescue in rescues_from_db if rescue not in rescues_to_update]
         updated_rescues = self._update_rescues(rescues=rescues_to_update, assets=assets)
-        print(f"Updated rescues: {updated_rescues}")
-        rescues = rescues_not_to_update + updated_rescues
-        print(f"New rescues: {rescues}")
 
         try:
             self._save_json(self.rescues_file, rescues_not_to_update + updated_rescues)
@@ -193,17 +188,7 @@ class Dispatcher:
                 "action_status": "SUCCESS",
             }
 
-
-    @staticmethod
-    def _get_filtered_rescues(rescuer_id: int, asset_ids: List[int]) -> List[Dict]:
-        print("Inside '_get_filtered_rescues'")
-
-        filtered_rescues = [rescue for rescue in all_rescues if rescue["rescuer_id"] == rescuer_id]
-        return [rescue for rescue in filtered_rescues if rescue["asset_id"] in asset_ids]
-
     def _update_rescues(self, rescues: List[Dict], assets: List[AssetModel]) -> List[Dict]:
-        print("Inside '_update_rescues'")
-
         updated_rescues = []
         for rescue in rescues:
             asset = self._find_corresponding_asset(asset_id=rescue["asset_id"], assets=assets)
@@ -215,13 +200,8 @@ class Dispatcher:
 
     @staticmethod
     def _find_corresponding_asset(asset_id: int, assets: List[AssetModel]) -> AssetModel:
-        print("Inside '_find_corresponding_asset'")
-
         for asset in assets:
-            print(f"asset.asset_id={asset.asset_id}")
-            print(f"Type of asset.asset_id={type(asset.asset_id)}")
             if asset_id == int(asset.asset_id):
-                print("Inside if statement")
                 return asset
 
         raise ValueError(
