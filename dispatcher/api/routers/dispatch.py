@@ -60,7 +60,7 @@ async def update_rescues(rescues: Rescues):
     app_state._logger.info("________Update rescues after asset downloads")
 
     # Call dispatcher logic
-    result = app_state._dispatcher.update_rescues_in_db(
+    result = app_state._dispatcher.upsert_rescues(
         rescuer_id=rescues.rescuer_id,
         assets=rescues.assets,
     )
