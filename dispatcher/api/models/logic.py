@@ -207,11 +207,11 @@ class Dispatcher:
             if rescue["rescuer_id"] == rescuer_id and rescue["asset_id"] in downloaded_asset_ids
         ]
 
+        rescues_not_to_update = [rescue for rescue in rescues_from_db if rescue not in rescues_to_update]
         updated_rescues = self._update_rescues(
             rescues_to_update=rescues_to_update,
             rescues_to_upsert=rescues_to_upsert,
         )
-        rescues_not_to_update = [rescue for rescue in rescues_from_db if rescue not in rescues_to_update]
         rescues_to_insert = self._identify_rescues_to_insert(
             rescuer_id=rescuer_id,
             rescues_from_db=rescues_from_db,
