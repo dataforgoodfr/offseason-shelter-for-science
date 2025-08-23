@@ -42,7 +42,7 @@ async def dispatch(request: DispatchRequest):
     if not result:
         raise HTTPException(
             status_code=422,
-            detail="No available assets matching the criteria"
+            detail="No available assets matching the criteria",
         )
 
     dispatch_response = DispatchResponse(
@@ -55,7 +55,7 @@ async def dispatch(request: DispatchRequest):
 
     return dispatch_response
 
-@router.put('/rescues')
+@router.put('/rescues', response_model=DispatchResponse)
 async def update_rescues(rescues: Rescues):
     app_state._logger.info("________Update rescues after asset downloads")
 
@@ -66,4 +66,18 @@ async def update_rescues(rescues: Rescues):
     )
     app_state._logger.info(result)
 
-    return result
+    if result["action_status"] == "FAIL":
+        return HTTPException(
+            status_code=500,
+            detail="An error happened when saving the data, the rescues couldn't be updated, please retry later.",
+        )
+
+    dispatch_response = DispatchResponse(
+        status="success",
+        message="Request received and processed",
+        received_data=rescues.dict(),
+        asset=rescues.assets,
+    )
+    print(f"Dispatch response: {dispatch_response}")
+
+    return dispatch_response
