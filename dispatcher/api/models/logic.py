@@ -174,31 +174,29 @@ class Dispatcher:
             return {
                 "action": "Update magnet link and status of rescues",
                 "rescuer_id": rescuer_id,
-                # "asset_ids": downloaded_asset_ids,
+                "asset_ids": [asset.asset_id for asset in assets],
                 "action_status": "FAIL",
             }
         else:
             return {
                 "action": "Update magnet link and status of rescues",
                 "rescuer_id": rescuer_id,
-                # "asset_ids": downloaded_asset_ids,
+                "asset_ids": [asset.asset_id for asset in assets],
                 "action_status": "SUCCESS",
             }
 
 
     @staticmethod
     def _prepare_rescues_to_upsert(rescuer_id: int, assets: List[AssetModel]) -> List[Dict]:
-        rescues_to_upsert = []
-        for asset in assets:
-            rescue = {
+        return [
+            {
                 "asset_id": int(asset.asset_id),
                 "rescuer_id": rescuer_id,
                 "magnet_link": asset.magnet_link,
-                "status": asset.status,
+                "status": asset.status.value,
             }
-            rescues_to_upsert.append(rescue)
-
-        return rescues_to_upsert
+            for asset in assets
+        ]
 
 
     def _upsert_rescues(self, rescuer_id: int, rescues_from_db: List[Dict], rescues_to_upsert: List[Dict]) -> List[Dict]:
@@ -215,6 +213,7 @@ class Dispatcher:
         )
         rescues_not_to_update = [rescue for rescue in rescues_from_db if rescue not in rescues_to_update]
         rescues_to_insert = self._identify_rescues_to_insert(
+            rescuer_id=rescuer_id,
             rescues_from_db=rescues_from_db,
             rescues_to_upsert=rescues_to_upsert,
         )
@@ -254,5 +253,3 @@ class Dispatcher:
     ) -> List[Dict]:
         asset_ids_from_db = [rescue["asset_id"] for rescue in rescues_from_db if rescue["rescuer_id"] == rescuer_id]
         return [rescue for rescue in rescues_to_upsert if rescue["asset_id"] not in asset_ids_from_db]
-
-

@@ -8,7 +8,13 @@
   {
     "asset_id": 71465,
     "rescuer_id": 154562,
-    "magnet_link": "magnet:?xt=urn:btih:d3",
-    "status": "FAIL"
+    "magnet_link": "magnet:?xt=urn:btih:d3-1",
+    "status": "SUCCESS"
+  },
+  {
+    "asset_id": 568712,
+    "rescuer_id": 154562,
+    "magnet_link": "magnet:?xt=urn:btih:d4",
+    "status": "SUCCESS"
   }
 ]
