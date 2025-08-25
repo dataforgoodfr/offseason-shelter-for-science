@@ -3,3 +3,10 @@ services:
     volumes:
       - .:/app
     command: uv run fastapi dev api/priorizer_service.py --host 0.0.0.0 --port 8082
+    networks:
+      - rescue_db
+
+networks:
+  rescue_db:
+    name: rescue_db
+    external: true
