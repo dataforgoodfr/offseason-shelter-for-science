@@ -5,8 +5,6 @@ from rescue_api.database import Base
 from sqlalchemy import text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .rescues import rescues
-
 
 class Rescuer(Base):
     __tablename__ = "rescuers"
@@ -23,4 +21,4 @@ class Rescuer(Base):
     )
 
     # Relationships
-    assets: Mapped[List["Asset"]] = relationship(secondary=rescues, back_populates="rescuers")
+    assets: Mapped[List["Rescue"]] = relationship(back_populates="rescuer")
