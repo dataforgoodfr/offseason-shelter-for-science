@@ -16,4 +16,4 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-rescue-api = { git = "https://github.com/dataforgoodfr/offseason-shelter-for-science-rescue_db.git", rev = "v0.0.2" }
+rescue-api = { git = "https://github.com/dataforgoodfr/offseason-shelter-for-science-rescue_db.git", rev = "v0.0.3" }
