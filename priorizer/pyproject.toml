@@ -16,8 +16,24 @@ dependencies = [
     "uvicorn==0.35.0",
     "psycopg2-binary>=2.9.9",
     "sqlalchemy>=2.0.0",
-    "rescue-api",
 ]
 
+[dependency-groups]
+dev = ["rescue-api"]
+prod = ["rescue-api"]
+
 [tool.uv.sources]
-rescue-api = { git = "https://github.com/dataforgoodfr/offseason-shelter-for-science-rescue_db.git", rev = "v0.0.3" }
+rescue-api = [
+    { git = "https://github.com/dataforgoodfr/offseason-shelter-for-science-rescue_db.git", rev = "v0.0.3", group = "prod" },
+    { path = "/lib/rescue_db/", editable = true, group = "dev" },
+]
+
+[tool.uv]
+default-groups = ["prod"]
+
+conflicts = [
+    [
+        { group = "dev" },
+        { group = "prod" },
+    ]
+]
