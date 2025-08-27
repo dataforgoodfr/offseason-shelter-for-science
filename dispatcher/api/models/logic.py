@@ -6,6 +6,9 @@ from datetime import datetime  # Import spécifique de la classe datetime
 import logging
 import uuid
 
+from sqlalchemy.orm import Session
+
+from rescue_api.models import Rescue
 from .payload import AssetModel
 
 # Configuration du logging
@@ -157,7 +160,56 @@ class Dispatcher:
             "allocation_id": str(uuid.uuid4())
         }
 
-    def upsert_rescues(self, rescuer_id: int, assets: List[AssetModel]) -> Dict:
+    @staticmethod
+    def upsert_rescues_to_db(rescuer_id: int, assets: List[AssetModel], db: Session) -> Dict:
+        updated_rescues = []
+        inserted_rescues = []
+
+        for asset in assets:
+            asset_id = int(asset.asset_id)
+            rescue = db.query(Rescue).filter(
+                (Rescue.rescuer_id == rescuer_id) & (Rescue.asset_id == asset_id)
+            ).first()
+
+            is_insertion_operation = False
+            if not rescue:
+                is_insertion_operation = True
+                rescue = Rescue(
+                    asset_id=asset_id,
+                    rescuer_id=rescuer_id,
+                    magnet_link=asset.magnet_link,
+                    status=asset.status.value.lower(),
+                )
+                db.add(rescue)
+                print("Rescue added to session!")
+            else:
+                rescue.magnet_link = asset.magnet_link
+                rescue.status = asset.status.value.lower()
+
+            try:
+                db.commit()
+            except Exception as e:
+                print(e)
+                print(f"Rescue with rescuer_id='{rescuer_id}' and asset_id='{asset_id}' has not been committed to DB.")
+            else:
+                committed_rescue = {
+                    "asset_id": asset_id,
+                    "rescuer_id": rescuer_id,
+                    "magnet_link": asset.magnet_link,
+                    "status": asset.status.value.lower(),
+                }
+                if is_insertion_operation:
+                    inserted_rescues.append(committed_rescue)
+                else:
+                    updated_rescues.append(committed_rescue)
+
+        return {
+            "updated_rescues": updated_rescues,
+            "inserted_rescues": inserted_rescues,
+        }
+
+
+    def upsert_rescues_to_json(self, rescuer_id: int, assets: List[AssetModel]) -> Dict:
         rescues_to_upsert = self._prepare_rescues_to_upsert(rescuer_id=rescuer_id, assets=assets)
         rescues_from_db = self._load_json(self.rescues_file)
 
