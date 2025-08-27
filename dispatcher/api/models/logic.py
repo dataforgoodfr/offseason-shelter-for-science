@@ -8,7 +8,7 @@ import uuid
 
 from sqlalchemy.orm import Session
 
-from rescue_api.models import Rescue
+from rescue_api.models import Asset, Rescue, Rescuer
 from .payload import AssetModel
 
 # Configuration du logging
@@ -160,8 +160,14 @@ class Dispatcher:
             "allocation_id": str(uuid.uuid4())
         }
 
-    @staticmethod
-    def upsert_rescues_to_db(rescuer_id: int, assets: List[AssetModel], db: Session) -> Dict:
+
+    def upsert_rescues_to_db(self, rescuer_id: int, assets: List[AssetModel], db: Session) -> Dict:
+        if not self._rescuer_exists(rescuer_id=rescuer_id, db=db):
+            return {}
+
+        if not self._are_assets_data_consistent(assets=assets, db=db):
+            return {}
+
         updated_rescues = []
         inserted_rescues = []
 
@@ -207,6 +213,30 @@ class Dispatcher:
             "updated_rescues": updated_rescues,
             "inserted_rescues": inserted_rescues,
         }
+
+
+    @staticmethod
+    def _rescuer_exists(rescuer_id: int, db: Session) -> bool:
+        rescuer = db.query(Rescuer).filter(Rescuer.id == rescuer_id).first()
+        return True if rescuer else False
+
+
+    @staticmethod
+    def _are_assets_data_consistent(assets: List[AssetModel], db: Session) -> bool:
+        missing_assets_count = 0
+        asset_inconsistencies_count = 0
+
+        for asset in assets:
+            db_asset = db.query(Asset).filter(Asset.id == int(asset.asset_id)).first()
+            if not db_asset:
+                missing_assets_count += 1
+            elif db_asset.url != asset.url:
+                asset_inconsistencies_count += 1
+
+        if missing_assets_count > 0 or asset_inconsistencies_count > 0:
+            return False
+
+        return True
 
 
     def upsert_rescues_to_json(self, rescuer_id: int, assets: List[AssetModel]) -> Dict:

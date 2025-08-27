@@ -78,7 +78,14 @@ async def upsert_rescues(request: RescuesRequest, db: Session = Depends(get_db))
     )
     app_state._logger.info(result)
 
-    if not result["updated_rescues"] and not result["inserted_rescues"]:
+    if not result:
+        raise HTTPException(
+            status_code=422,
+            detail="The error can be the following: the rescuer doesn't exist in the database; or at least one asset "
+                   "doesn't exist in the database; or the asset data you provided don't match the ones in the "
+                   "database. Make sure to provide an existing rescuer, existing assets and correct asset data.",
+        )
+    elif not result["updated_rescues"] and not result["inserted_rescues"]:
         raise HTTPException(
             status_code=500,
             detail="Something went wrong when saving the data, the rescues couldn't be upserted, please retry later.",
