@@ -58,9 +58,13 @@ class RescuesResponse(DispatchResponse):
     asset: Optional[List[AssetModel]] = Field(default=None, description="Dataset list")
     updated_rescues: Optional[List[Dict[str, Any]]] = Field(
         default=None,
-        description="List of rescued assets that were updated in the DB.",
+        description="List of rescued assets that were updated in the database.",
     )
     inserted_rescues: Optional[List[Dict[str, Any]]] = Field(
         default=None,
-        description="List of rescued assets that were inserted in the DB.",
+        description="List of rescued assets that were inserted in the database.",
+    )
+    not_committed_rescues: Optional[List[Dict[str, Any]]] = Field(
+        default=None,
+        description="List of rescued assets for which an error happened when we tried to commit it to the database.",
     )

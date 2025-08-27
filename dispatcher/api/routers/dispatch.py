@@ -98,6 +98,7 @@ async def upsert_rescues(request: RescuesRequest, db: Session = Depends(get_db))
         asset=request.assets,
         updated_rescues=result["updated_rescues"],
         inserted_rescues=result["inserted_rescues"],
+        not_committed_rescues=result["not_committed_rescues"],
     )
     print(f"Dispatch response: {response}")
 

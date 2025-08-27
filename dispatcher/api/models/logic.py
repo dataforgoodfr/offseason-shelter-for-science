@@ -170,6 +170,7 @@ class Dispatcher:
 
         updated_rescues = []
         inserted_rescues = []
+        not_committed_rescues = []
 
         for asset in assets:
             asset_id = int(asset.asset_id)
@@ -187,7 +188,6 @@ class Dispatcher:
                     status=asset.status.value.lower(),
                 )
                 db.add(rescue)
-                print("Rescue added to session!")
             else:
                 rescue.magnet_link = asset.magnet_link
                 rescue.status = asset.status.value.lower()
@@ -197,6 +197,14 @@ class Dispatcher:
             except Exception as e:
                 print(e)
                 print(f"Rescue with rescuer_id='{rescuer_id}' and asset_id='{asset_id}' has not been committed to DB.")
+                not_committed_rescues.append(
+                    {
+                        "asset_id": asset_id,
+                        "rescuer_id": rescuer_id,
+                        "magnet_link": asset.magnet_link,
+                        "status": asset.status.value.lower(),
+                    }
+                )
             else:
                 committed_rescue = {
                     "asset_id": asset_id,
@@ -212,6 +220,7 @@ class Dispatcher:
         return {
             "updated_rescues": updated_rescues,
             "inserted_rescues": inserted_rescues,
+            "not_committed_rescues": not_committed_rescues,
         }
 
 
