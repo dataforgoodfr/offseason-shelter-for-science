@@ -6,6 +6,9 @@ from datetime import datetime  # Import spécifique de la classe datetime
 import logging
 import uuid
 
+from sqlalchemy.orm import Session
+
+from rescue_api.models import Asset, Rescue, Rescuer
 from .payload import AssetModel
 
 # Configuration du logging
@@ -157,7 +160,95 @@ class Dispatcher:
             "allocation_id": str(uuid.uuid4())
         }
 
-    def upsert_rescues(self, rescuer_id: int, assets: List[AssetModel]) -> Dict:
+
+    def upsert_rescues_to_db(self, rescuer_id: int, assets: List[AssetModel], db: Session) -> Dict:
+        if not self._rescuer_exists(rescuer_id=rescuer_id, db=db):
+            return {}
+
+        if not self._are_assets_data_consistent(assets=assets, db=db):
+            return {}
+
+        updated_rescues = []
+        inserted_rescues = []
+        not_committed_rescues = []
+
+        for asset in assets:
+            asset_id = int(asset.asset_id)
+            rescue = db.query(Rescue).filter(
+                (Rescue.rescuer_id == rescuer_id) & (Rescue.asset_id == asset_id)
+            ).first()
+
+            is_insertion_operation = False
+            if not rescue:
+                is_insertion_operation = True
+                rescue = Rescue(
+                    asset_id=asset_id,
+                    rescuer_id=rescuer_id,
+                    magnet_link=asset.magnet_link,
+                    status=asset.status.value.lower(),
+                )
+                db.add(rescue)
+            else:
+                rescue.magnet_link = asset.magnet_link
+                rescue.status = asset.status.value.lower()
+
+            try:
+                db.commit()
+            except Exception as e:
+                print(e)
+                print(f"Rescue with rescuer_id='{rescuer_id}' and asset_id='{asset_id}' has not been committed to DB.")
+                not_committed_rescues.append(
+                    {
+                        "asset_id": asset_id,
+                        "rescuer_id": rescuer_id,
+                        "magnet_link": asset.magnet_link,
+                        "status": asset.status.value.lower(),
+                    }
+                )
+            else:
+                committed_rescue = {
+                    "asset_id": asset_id,
+                    "rescuer_id": rescuer_id,
+                    "magnet_link": asset.magnet_link,
+                    "status": asset.status.value.lower(),
+                }
+                if is_insertion_operation:
+                    inserted_rescues.append(committed_rescue)
+                else:
+                    updated_rescues.append(committed_rescue)
+
+        return {
+            "updated_rescues": updated_rescues,
+            "inserted_rescues": inserted_rescues,
+            "not_committed_rescues": not_committed_rescues,
+        }
+
+
+    @staticmethod
+    def _rescuer_exists(rescuer_id: int, db: Session) -> bool:
+        rescuer = db.query(Rescuer).filter(Rescuer.id == rescuer_id).first()
+        return True if rescuer else False
+
+
+    @staticmethod
+    def _are_assets_data_consistent(assets: List[AssetModel], db: Session) -> bool:
+        missing_assets_count = 0
+        asset_inconsistencies_count = 0
+
+        for asset in assets:
+            db_asset = db.query(Asset).filter(Asset.id == int(asset.asset_id)).first()
+            if not db_asset:
+                missing_assets_count += 1
+            elif db_asset.url != asset.url:
+                asset_inconsistencies_count += 1
+
+        if missing_assets_count > 0 or asset_inconsistencies_count > 0:
+            return False
+
+        return True
+
+
+    def upsert_rescues_to_json(self, rescuer_id: int, assets: List[AssetModel]) -> Dict:
         rescues_to_upsert = self._prepare_rescues_to_upsert(rescuer_id=rescuer_id, assets=assets)
         rescues_from_db = self._load_json(self.rescues_file)
 
