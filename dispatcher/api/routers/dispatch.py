@@ -88,7 +88,11 @@ async def upsert_rescues(request: RescuesRequest, db: Session = Depends(get_db))
     elif not result["updated_rescues"] and not result["inserted_rescues"]:
         raise HTTPException(
             status_code=500,
-            detail="Something went wrong when saving the data, the rescues couldn't be upserted, please retry later.",
+            detail={
+                "message": "Something went wrong when saving the data, the rescues below couldn't be upserted, "
+                           "please retry later.",
+                "not_committed_rescues": result["not_committed_rescues"],
+            },
         )
 
     response = RescuesResponse(
