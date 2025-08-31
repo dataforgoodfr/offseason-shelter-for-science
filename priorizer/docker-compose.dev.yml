@@ -2,9 +2,14 @@ services:
   priorizer-api:
     volumes:
       - .:/app
-    command: uv run fastapi dev api/priorizer_service.py --host 0.0.0.0 --port 8082
+      - ../../offseason-shelter-for-science-rescue_db:/lib/rescue_db
+    command: uv run --group dev --no-default-groups --frozen fastapi dev api/priorizer_service.py --host 0.0.0.0 --port 8082
     networks:
       - rescue_db
+    #entrypoint:
+    #  - tail
+    #  - -f
+    #  - /dev/null
 
 networks:
   rescue_db:

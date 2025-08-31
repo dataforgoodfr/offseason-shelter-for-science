@@ -5,7 +5,7 @@ Global state manager for the priorizer service application.
 import logging
 
 from typing import Optional
-#from models.logic import RankedRequestManager
+from models.logic import RankedRequestManager
 
 
 class AppState:
@@ -25,7 +25,7 @@ class AppState:
         self._logger: logging = logging.getLogger(__name__)
         self._logger.setLevel(logging.INFO)
         # Priorizer configuration
-        #self._priorizer: RankedRequestManager = RankedRequestManager()
+        self._priorizer: RankedRequestManager = RankedRequestManager()
 
 
 # Global state instance

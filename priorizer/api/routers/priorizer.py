@@ -30,7 +30,7 @@ async def mock_ranking():
 async def ranking():
     app_state._logger.info("________In priorizer")
     # Call last priorizer ranking available
-    result = app_state._priorizer.get_dataset_info()
+    result = app_state._priorizer.get_rank()
     app_state._logger.info(result)
 
     priorizer_response = PriorizerResponse(

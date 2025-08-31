@@ -5,7 +5,13 @@
 #import datetime
 #import json
 #import pandas as pd
-#import pathlib
+import pathlib
+
+from rescue_api.models.dataset_rank import DatasetRank
+#from rescue_api.models.resource import Resource
+#from rescue_api.models.mvp_downloader_library import MvpDownloaderLibrary
+from rescue_api.database import get_db
+from sqlalchemy import func
 #import re
 #from tqdm import tqdm
 #
@@ -52,254 +58,308 @@
 #    raise ValueError("Invalid URL mapping file format. 'mapping' key not found.")
 #
 #
-#class RankedRequestManager:
-#    def __init__(self, inputs: list[pathlib.Path], mapping: object):
-#        self.inputs = inputs
-#        self.root_path = mapping["root"]
-#        self.mapping = {key.lower(): value for key, value in mapping["mapping"].items()}
-#        self.rankings = {"mapping_root_path": self.root_path}
-#        self.dataset_rankings = {"mapping_root_path": self.root_path}
-#        self.sorted_dataset_rankings = {"mapping_root_path": self.root_path}
-#        self.dataset_cache = {}
+class RankedRequestManager:
+    def __init__(self):
+        pass
+    #def __init__(self, inputs: list[pathlib.Path], mapping: object):
+    #    self.inputs = inputs
+    #    self.root_path = mapping["root"]
+    #    self.mapping = {key.lower(): value for key, value in mapping["mapping"].items()}
+    #    self.rankings = {"mapping_root_path": self.root_path}
+    #    self.dataset_rankings = {"mapping_root_path": self.root_path}
+    #    self.sorted_dataset_rankings = {"mapping_root_path": self.root_path}
+    #    self.dataset_cache = {}
 #
-#        self.dataset_loader = None
-#        #self.dataset_loader = DatasetLoader(exists_ok=True)
+    #    self.dataset_loader = None
+    #    #self.dataset_loader = DatasetLoader(exists_ok=True)
+
+    #def get_dataset_info(self, ds_id: str, relative_path: str):
+    #    if ds_id in self.dataset_cache:
+    #        return self.dataset_cache[ds_id]
 #
-#    def get_dataset_info(self, ds_id: str, relative_path: str):
-#        if ds_id in self.dataset_cache:
-#            return self.dataset_cache[ds_id]
+    #    absolute_path = pathlib.Path(self.root_path) / relative_path
 #
-#        absolute_path = pathlib.Path(self.root_path) / relative_path
+    #    if ds_id not in self.dataset_loader.model_manager.datasets:
+    #        self.dataset_loader.load(absolute_path, resources=False)
 #
-#        if ds_id not in self.dataset_loader.model_manager.datasets:
-#            self.dataset_loader.load(absolute_path, resources=False)
+    #        if ds_id not in self.dataset_loader.model_manager.datasets:
+    #            raise ValueError(
+    #                f"Dataset ID {ds_id} not found in the dataset loader {absolute_path}."
+    #            )
 #
-#            if ds_id not in self.dataset_loader.model_manager.datasets:
-#                raise ValueError(
-#                    f"Dataset ID {ds_id} not found in the dataset loader {absolute_path}."
-#                )
+    #    result = {
+    #        "org": self.dataset_loader.model_manager.datasets[
+    #            ds_id
+    #        ].organization.dg_name,
+    #        "id": ds_id,
+    #        "name": self.dataset_loader.model_manager.datasets[ds_id].dg_name,
+    #        "title": self.dataset_loader.model_manager.datasets[ds_id].dg_title,
+    #        "path": relative_path,
+    #    }
+    #    self.dataset_cache[ds_id] = result
 #
-#        result = {
-#            "org": self.dataset_loader.model_manager.datasets[
-#                ds_id
-#            ].organization.dg_name,
-#            "id": ds_id,
-#            "name": self.dataset_loader.model_manager.datasets[ds_id].dg_name,
-#            "title": self.dataset_loader.model_manager.datasets[ds_id].dg_title,
-#            "path": relative_path,
-#        }
-#        self.dataset_cache[ds_id] = result
+    #    return result
+
+    def get_rank(self) -> dict:
+        session = next(get_db())
+        #results = (
+        #        session.query(
+        #                MvpDownloaderLibrary.dataset_id,
+        #                MvpDownloaderLibrary.event_count,
+        #                MvpDownloaderLibrary.resource_id,
+        #                MvpDownloaderLibrary.deeplink,
+        #                MvpDownloaderLibrary.deeplink_file_size,
+        #                MvpDownloaderLibrary.magnet_link,
+        #                MvpDownloaderLibrary.dg_id,
+        #                MvpDownloaderLibrary.dg_name,
+        #                MvpDownloaderLibrary.dg_description,
+        #                DatasetRank.updated_at,
+        #                DatasetRank.rank
+        #        )
+        #        .join(DatasetRank, DatasetRank.dataset_id == MvpDownloaderLibrary.dataset_id)
+        #        .outerjoin(Resource, Resource.ID == MvpDownloaderLibrary.resource_id)
+        #        .all()
+        #        )
+
+
+
+        subq = (session.query(DatasetRank.dataset_id, func.max(DatasetRank.updated_at).label("max_updated_at")).group_by(DatasetRank.dataset_id).subquery())
+        ranks = session.query(DatasetRank).join(subq, (DatasetRank.dataset_id == subq.c.dataset_id) & (DatasetRank.updated_at == subq.c.max_updated_at)).all()
+
+        results = [{
+                "path": "",
+                "name": "",
+                "priority": r.rank,
+                "size_mb": 1.0,
+                "ds_id": str(r.dataset_id),
+                "res_id": "",
+                "asset_id": "",
+                "url": "magnet:?xt=urn:btih:d2"
+                }
+                for r in ranks]
+        print(type(ranks))
+        return {"assets": results}
+        
+    def rank(self) -> dict:
+        rankings = {}
+
+        print("_________ In ranking function")
+        session = next(get_db())
+
+        # List last ranks for each dataset_id
+        subq = (session.query(DatasetRank.dataset_id, func.max(DatasetRank.updated_at).label("max_updated_at")).group_by(DatasetRank.dataset_id).subquery())
+        ranks = session.query(DatasetRank).join(subq, (DatasetRank.dataset_id == subq.c.dataset_id) & (DatasetRank.updated_at == subq.c.max_updated_at)).all()
+        
+        print(dir(ranks))
+        
+        # TODO only insert amended ranks
+
+        return {"assets": []}
+        #for input_file in self.inputs:
+        #    dataset_ranking = None
+        #    #dataset_ranking = DatasetRanking()
+        #    rankings[input_file.name] = dataset_ranking
 #
-#        return result
+        #    dataset_ranking.name = input_file.name
+        #    dataset_ranking.ranking_date = datetime.datetime.fromtimestamp(
+        #        input_file.stat().st_ctime
+        #    )
 #
-#    def rank(self):
-#        rankings = {}
+        #    input_file_name = input_file.name
+        #    self.rankings[input_file_name] = {}
+        #    self.dataset_rankings[input_file_name] = {}
+        #    ranking = {}
 #
-#        for input_file in self.inputs:
-#            dataset_ranking = None
-#            #dataset_ranking = DatasetRanking()
-#            rankings[input_file.name] = dataset_ranking
+        #    df = pd.read_csv(input_file)
 #
-#            dataset_ranking.name = input_file.name
-#            dataset_ranking.ranking_date = datetime.datetime.fromtimestamp(
-#                input_file.stat().st_ctime
-#            )
+        #    if df.empty:
+        #        ranking = {"error": "Empty file"}
+        #    else:
+        #        link_file_type = None
 #
-#            input_file_name = input_file.name
-#            self.rankings[input_file_name] = {}
-#            self.dataset_rankings[input_file_name] = {}
-#            ranking = {}
+        #        # Checking file type
+        #        if "customEvent:DATAGOV_dataset_publisher" in df.columns:
+        #            # This is a link request file
+        #            print(f"Processing link requests from {input_file_name}")
+        #            link_file_type = True
 #
-#            df = pd.read_csv(input_file)
+        #            dataset_ranking.type = "link"
+        #            dataset_ranking.comment = "Link requests ranking"
+        #        elif "fileName" in df.columns:
+        #            # This is a download request file
+        #            print(f"Processing download requests from {input_file_name}")
+        #            link_file_type = False
 #
-#            if df.empty:
-#                ranking = {"error": "Empty file"}
-#            else:
-#                link_file_type = None
+        #            dataset_ranking.type = "download"
+        #            dataset_ranking.comment = "Download requests ranking"
+        #        else:
+        #            raise ValueError(f"Unknown file format in {input_file_name}")
 #
-#                # Checking file type
-#                if "customEvent:DATAGOV_dataset_publisher" in df.columns:
-#                    # This is a link request file
-#                    print(f"Processing link requests from {input_file_name}")
-#                    link_file_type = True
+        #        for index, row in tqdm(
+        #            df.iterrows(),
+        #            total=df.shape[0],
+        #            desc=f"Processing {input_file_name}",
+        #        ):
+        #            url = row.get("linkUrl")
+        #            if url and isinstance(url, str):
+        #                url = url.strip()
 #
-#                    dataset_ranking.type = "link"
-#                    dataset_ranking.comment = "Link requests ranking"
-#                elif "fileName" in df.columns:
-#                    # This is a download request file
-#                    print(f"Processing download requests from {input_file_name}")
-#                    link_file_type = False
+        #                publisher = None
+        #                if link_file_type:
+        #                    publisher = row.get(
+        #                        "customEvent:DATAGOV_dataset_publisher", None
+        #                    )
+        #                    if publisher == "NO PUB":
+        #                        publisher = "Unknown"
+        #                else:
+        #                    filename = row.get("fileName", "")
+        #                    if not filename:
+        #                        raise ValueError(
+        #                            f"File name not found for download request in {input_file_name}"
+        #                        )
 #
-#                    dataset_ranking.type = "download"
-#                    dataset_ranking.comment = "Download requests ranking"
-#                else:
-#                    raise ValueError(f"Unknown file format in {input_file_name}")
+        #                    # URL reconstruction for download requests
+        #                    url = url[: url.rfind("/")] + "/" + filename
+        #                    # print("Reconstructed URL for download request:", url)
 #
-#                for index, row in tqdm(
-#                    df.iterrows(),
-#                    total=df.shape[0],
-#                    desc=f"Processing {input_file_name}",
-#                ):
-#                    url = row.get("linkUrl")
-#                    if url and isinstance(url, str):
-#                        url = url.strip()
+        #                url_lower = url.lower()
+        #                associated_resources = self.mapping.get(url_lower, [])
+        #                if associated_resources:
+        #                    event_count = int(row.get("eventCount", 0))
+        #                    url_info = {
+        #                        "count": event_count,
+        #                        "page_location": row.get("pageLocation", ""),
+        #                        "page_title": row.get("pageTitle", ""),
+        #                        "index": index,
+        #                    }
+        #                    if publisher:
+        #                        url_info["publisher"] = publisher
 #
-#                        publisher = None
-#                        if link_file_type:
-#                            publisher = row.get(
-#                                "customEvent:DATAGOV_dataset_publisher", None
-#                            )
-#                            if publisher == "NO PUB":
-#                                publisher = "Unknown"
-#                        else:
-#                            filename = row.get("fileName", "")
-#                            if not filename:
-#                                raise ValueError(
-#                                    f"File name not found for download request in {input_file_name}"
-#                                )
+        #                    datasets = {}
+        #                    datasets_encountered = set()
+        #                    for resource in associated_resources:
+        #                        ds_id = resource.get("ds_id")
+        #                        if ds_id:
+        #                            if ds_id not in datasets:
+        #                                datasets[ds_id] = {
+        #                                    "id": ds_id,
+        #                                    "path": resource.get("path", ""),
+        #                                    "resources": {},
+        #                                }
+        #                            if ds_id not in datasets_encountered:
+        #                                datasets_encountered.add(ds_id)
+        #                                if (
+        #                                    ds_id
+        #                                    not in self.dataset_rankings[
+        #                                        input_file_name
+        #                                    ]
+        #                                ):
+        #                                    self.dataset_rankings[input_file_name][
+        #                                        ds_id
+        #                                    ] = self.get_dataset_info(
+        #                                        ds_id, datasets[ds_id]["path"]
+        #                                    )
+        #                                    self.dataset_rankings[input_file_name][
+        #                                        ds_id
+        #                                    ]["count"] = event_count
+        #                                else:
+        #                                    self.dataset_rankings[input_file_name][
+        #                                        ds_id
+        #                                    ]["count"] += event_count
 #
-#                            # URL reconstruction for download requests
-#                            url = url[: url.rfind("/")] + "/" + filename
-#                            # print("Reconstructed URL for download request:", url)
+        #                        datasets[ds_id]["resources"][resource.get("res_id")] = 1
 #
-#                        url_lower = url.lower()
-#                        associated_resources = self.mapping.get(url_lower, [])
-#                        if associated_resources:
-#                            event_count = int(row.get("eventCount", 0))
-#                            url_info = {
-#                                "count": event_count,
-#                                "page_location": row.get("pageLocation", ""),
-#                                "page_title": row.get("pageTitle", ""),
-#                                "index": index,
-#                            }
-#                            if publisher:
-#                                url_info["publisher"] = publisher
+        #                    if url_lower in ranking:
+        #                        ranking[url_lower]["total_count"] += url_info["count"]
+        #                        for ds_id, ds_info in datasets.items():
+        #                            if ds_id not in ranking[url_lower]["datasets"]:
+        #                                ranking[url_lower]["datasets"][ds_id] = ds_info
+        #                            else:
+        #                                for res_id, count in ds_info[
+        #                                    "resources"
+        #                                ].items():
+        #                                    if (
+        #                                        res_id
+        #                                        in ranking[url_lower]["datasets"][
+        #                                            ds_id
+        #                                        ]["resources"]
+        #                                    ):
+        #                                        ranking[url_lower]["datasets"][ds_id][
+        #                                            "resources"
+        #                                        ][res_id] += 1
+        #                                    else:
+        #                                        ranking[url_lower]["datasets"][ds_id][
+        #                                            "resources"
+        #                                        ][res_id] = count
+        #                        ranking[url_lower]["info"].append(url_info)
 #
-#                            datasets = {}
-#                            datasets_encountered = set()
-#                            for resource in associated_resources:
-#                                ds_id = resource.get("ds_id")
-#                                if ds_id:
-#                                    if ds_id not in datasets:
-#                                        datasets[ds_id] = {
-#                                            "id": ds_id,
-#                                            "path": resource.get("path", ""),
-#                                            "resources": {},
-#                                        }
-#                                    if ds_id not in datasets_encountered:
-#                                        datasets_encountered.add(ds_id)
-#                                        if (
-#                                            ds_id
-#                                            not in self.dataset_rankings[
-#                                                input_file_name
-#                                            ]
-#                                        ):
-#                                            self.dataset_rankings[input_file_name][
-#                                                ds_id
-#                                            ] = self.get_dataset_info(
-#                                                ds_id, datasets[ds_id]["path"]
-#                                            )
-#                                            self.dataset_rankings[input_file_name][
-#                                                ds_id
-#                                            ]["count"] = event_count
-#                                        else:
-#                                            self.dataset_rankings[input_file_name][
-#                                                ds_id
-#                                            ]["count"] += event_count
+        #                    else:
+        #                        ranking[url_lower] = {
+        #                            "total_count": url_info["count"],
+        #                            "datasets": datasets,
+        #                            "info": [url_info],
+        #                        }
 #
-#                                datasets[ds_id]["resources"][resource.get("res_id")] = 1
+        #    self.rankings[input_file_name] = ranking
 #
-#                            if url_lower in ranking:
-#                                ranking[url_lower]["total_count"] += url_info["count"]
-#                                for ds_id, ds_info in datasets.items():
-#                                    if ds_id not in ranking[url_lower]["datasets"]:
-#                                        ranking[url_lower]["datasets"][ds_id] = ds_info
-#                                    else:
-#                                        for res_id, count in ds_info[
-#                                            "resources"
-#                                        ].items():
-#                                            if (
-#                                                res_id
-#                                                in ranking[url_lower]["datasets"][
-#                                                    ds_id
-#                                                ]["resources"]
-#                                            ):
-#                                                ranking[url_lower]["datasets"][ds_id][
-#                                                    "resources"
-#                                                ][res_id] += 1
-#                                            else:
-#                                                ranking[url_lower]["datasets"][ds_id][
-#                                                    "resources"
-#                                                ][res_id] = count
-#                                ranking[url_lower]["info"].append(url_info)
+        #    # Sorting dataset rankings by count
+        #    self.dataset_rankings[input_file_name] = list(
+        #        self.dataset_rankings[input_file_name].values()
+        #    )
+        #    # self.sorted_dataset_rankings[input_file_name].sort(key=lambda obj: int(obj["count"]), reverse=True)
 #
-#                            else:
-#                                ranking[url_lower] = {
-#                                    "total_count": url_info["count"],
-#                                    "datasets": datasets,
-#                                    "info": [url_info],
-#                                }
+        #db = next(database.get_db())
 #
-#            self.rankings[input_file_name] = ranking
+        #dataset_db_mapping = {}
 #
-#            # Sorting dataset rankings by count
-#            self.dataset_rankings[input_file_name] = list(
-#                self.dataset_rankings[input_file_name].values()
-#            )
-#            # self.sorted_dataset_rankings[input_file_name].sort(key=lambda obj: int(obj["count"]), reverse=True)
+        #for input_file_name, ranking_datasets in self.dataset_rankings.items():
+        #    if input_file_name == "mapping_root_path":
+        #        continue  # Ignore metadata
 #
-#        db = next(database.get_db())
+        #    if not ranking_datasets:
+        #        continue
 #
-#        dataset_db_mapping = {}
+        #    progress = tqdm(
+        #        total=len(ranking_datasets),
+        #        desc=f"Building ranks for {input_file_name}...",
+        #    )
 #
-#        for input_file_name, ranking_datasets in self.dataset_rankings.items():
-#            if input_file_name == "mapping_root_path":
-#                continue  # Ignore metadata
+        #    ranking = rankings[input_file_name]
 #
-#            if not ranking_datasets:
-#                continue
+        #    rank = 0
+        #    sorted_datasets = sorted(
+        #        ranking_datasets, key=lambda x: int(x["count"]), reverse=True
+        #    )
+        #    for sorted_dataset in sorted_datasets:
+        #        rank += 1
+        #        progress.update(1)
 #
-#            progress = tqdm(
-#                total=len(ranking_datasets),
-#                desc=f"Building ranks for {input_file_name}...",
-#            )
+        #        ds_id = sorted_dataset["id"]
+        #        if not ds_id in dataset_db_mapping:
+        #            dataset = (
+        #                db.query(Dataset)
+        #                .filter(Dataset.dg_id == ds_id)
+        #                .options(load_only(Dataset.id))
+        #                .one()
+        #            )
+        #            if not dataset:
+        #                print("Dataset not found in DB:", ds_id, "skipping")
+        #                continue
+        #            dataset_db_mapping[ds_id] = dataset.id
 #
-#            ranking = rankings[input_file_name]
+        #        #ranks = DatasetRank()
+        #        ranks = None
+        #        ranks.ranking = ranking
+        #        ranks.rank = rank
 #
-#            rank = 0
-#            sorted_datasets = sorted(
-#                ranking_datasets, key=lambda x: int(x["count"]), reverse=True
-#            )
-#            for sorted_dataset in sorted_datasets:
-#                rank += 1
-#                progress.update(1)
+        #        ranks.dataset_id = dataset_db_mapping[ds_id]
+        #        ranks.event_count = sorted_dataset["count"]
 #
-#                ds_id = sorted_dataset["id"]
-#                if not ds_id in dataset_db_mapping:
-#                    dataset = (
-#                        db.query(Dataset)
-#                        .filter(Dataset.dg_id == ds_id)
-#                        .options(load_only(Dataset.id))
-#                        .one()
-#                    )
-#                    if not dataset:
-#                        print("Dataset not found in DB:", ds_id, "skipping")
-#                        continue
-#                    dataset_db_mapping[ds_id] = dataset.id
-#
-#                #ranks = DatasetRank()
-#                ranks = None
-#                ranks.ranking = ranking
-#                ranks.rank = rank
-#
-#                ranks.dataset_id = dataset_db_mapping[ds_id]
-#                ranks.event_count = sorted_dataset["count"]
-#
-#            db.merge(ranking)
-#            db.commit()
-#            progress.close()
-#
-#
+        #    db.merge(ranking)
+        #    db.commit()
+        #    progress.close()
+
+
 #ranking_manager = RankedRequestManager(args.inputs, url_mapping)
 #ranking_manager.rank()
-pass
+#pass

@@ -4,8 +4,8 @@ COPY . /app
 
 WORKDIR /app
 
+RUN apk add --no-cache --virtual .build-deps curl git
 RUN uv sync --frozen --no-cache --no-dev
-RUN apk add --no-cache --virtual .build-deps curl
 
 EXPOSE 8082
 
