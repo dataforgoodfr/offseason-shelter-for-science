@@ -37,7 +37,10 @@ class AssetModel(BaseModel):
             except:
                 pattern = r'magnet:\?xt=urn:[a-z0-9]+:[a-zA-Z0-9]{1,40}'
                 if not re.match(pattern, v):
-                    raise ValueError("Invalid magnet link or URL format")
+                    pattern = r'ftp://.*'
+                    if not re.match(pattern, v):
+                        raise ValueError("Invalid magnet link, FTP or URL format")
+        return v
         return v
 
 # Define a Pydantic model for the response payload
