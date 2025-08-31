@@ -6,6 +6,9 @@ from datetime import datetime  # Import spécifique de la classe datetime
 import logging
 import uuid
 
+from sqlalchemy.orm import Session
+
+from rescue_api.models import Asset, Rescue, Rescuer
 from .payload import AssetModel
 
 # Configuration du logging
@@ -19,7 +22,6 @@ class Dispatcher:
         self.ranker_file = self.data_dir / "ranker_mock.json"
         self.alloc_file = self.data_dir / "allocations.json"
         self.rescues_file = self.data_dir / "rescues_mock.json"
-        
         self._init_files()
     
     def _init_files(self):
@@ -48,7 +50,7 @@ class Dispatcher:
                         "name": "CHHS CA mock data 2",
                         "size_mb": 16.2,
                         "priority": 1,
-                        "url": "https://letsgethealthy.ca.gov/goals/living-well/mental-health-and-well-being-reducing-adult-depression/"
+                        "url": "https://data.cdc.gov/api/views/bi63-dtpu/rows.csv?accessType=DOWNLOAD"
                     },
                     {
                         "ds_id": "d3",
@@ -58,7 +60,7 @@ class Dispatcher:
                         "name": "Dataset 3",
                         "size_mb": 156,
                         "priority": 6,
-                        "url": "magnet:?xt=urn:btih:d2"
+                        "url": "magnet:?xt=urn:btih:dd8255ecdc7ca55fb0bbf81323d87062db1f6d1c&dn=Big+Buck+Bunny&tr=udp%3A%2F%2Fexplodie.org%3A6969&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.empire-js.us%3A1337&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337&tr=wss%3A%2F%2Ftracker.btorrent.xyz&tr=wss%3A%2F%2Ftracker.fastcast.nz&tr=wss%3A%2F%2Ftracker.openwebtorrent.com&ws=https%3A%2F%2Fwebtorrent.io%2Ftorrents%2F&xs=https%3A%2F%2Fwebtorrent.io%2Ftorrents%2Fbig-buck-bunny.torrent"
                     }
                 ])
             )
@@ -85,7 +87,6 @@ class Dispatcher:
                     }
                 ])
             )
-    
     def _load_json(self, file: Path) -> List[Dict]:
         """Charge un fichier JSON avec gestion robuste des erreurs"""
         try:
@@ -157,7 +158,95 @@ class Dispatcher:
             "allocation_id": str(uuid.uuid4())
         }
 
-    def upsert_rescues(self, rescuer_id: int, assets: List[AssetModel]) -> Dict:
+
+    def upsert_rescues_to_db(self, rescuer_id: int, assets: List[AssetModel], db: Session) -> Dict:
+        if not self._rescuer_exists(rescuer_id=rescuer_id, db=db):
+            return {}
+
+        if not self._are_assets_data_consistent(assets=assets, db=db):
+            return {}
+
+        updated_rescues = []
+        inserted_rescues = []
+        not_committed_rescues = []
+
+        for asset in assets:
+            asset_id = int(asset.asset_id)
+            rescue = db.query(Rescue).filter(
+                (Rescue.rescuer_id == rescuer_id) & (Rescue.asset_id == asset_id)
+            ).first()
+
+            is_insertion_operation = False
+            if not rescue:
+                is_insertion_operation = True
+                rescue = Rescue(
+                    asset_id=asset_id,
+                    rescuer_id=rescuer_id,
+                    magnet_link=asset.magnet_link,
+                    status=asset.status.value.lower(),
+                )
+                db.add(rescue)
+            else:
+                rescue.magnet_link = asset.magnet_link
+                rescue.status = asset.status.value.lower()
+
+            try:
+                db.commit()
+            except Exception as e:
+                print(e)
+                print(f"Rescue with rescuer_id='{rescuer_id}' and asset_id='{asset_id}' has not been committed to DB.")
+                not_committed_rescues.append(
+                    {
+                        "asset_id": asset_id,
+                        "rescuer_id": rescuer_id,
+                        "magnet_link": asset.magnet_link,
+                        "status": asset.status.value.lower(),
+                    }
+                )
+            else:
+                committed_rescue = {
+                    "asset_id": asset_id,
+                    "rescuer_id": rescuer_id,
+                    "magnet_link": asset.magnet_link,
+                    "status": asset.status.value.lower(),
+                }
+                if is_insertion_operation:
+                    inserted_rescues.append(committed_rescue)
+                else:
+                    updated_rescues.append(committed_rescue)
+
+        return {
+            "updated_rescues": updated_rescues,
+            "inserted_rescues": inserted_rescues,
+            "not_committed_rescues": not_committed_rescues,
+        }
+
+
+    @staticmethod
+    def _rescuer_exists(rescuer_id: int, db: Session) -> bool:
+        rescuer = db.query(Rescuer).filter(Rescuer.id == rescuer_id).first()
+        return True if rescuer else False
+
+
+    @staticmethod
+    def _are_assets_data_consistent(assets: List[AssetModel], db: Session) -> bool:
+        missing_assets_count = 0
+        asset_inconsistencies_count = 0
+
+        for asset in assets:
+            db_asset = db.query(Asset).filter(Asset.id == int(asset.asset_id)).first()
+            if not db_asset:
+                missing_assets_count += 1
+            elif db_asset.url != asset.url:
+                asset_inconsistencies_count += 1
+
+        if missing_assets_count > 0 or asset_inconsistencies_count > 0:
+            return False
+
+        return True
+
+
+    def upsert_rescues_to_json(self, rescuer_id: int, assets: List[AssetModel]) -> Dict:
         rescues_to_upsert = self._prepare_rescues_to_upsert(rescuer_id=rescuer_id, assets=assets)
         rescues_from_db = self._load_json(self.rescues_file)
 
