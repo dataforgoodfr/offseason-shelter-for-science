@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, HttpUrl, field_validator
-from typing import List, Any
+from typing import List, Any, Optional
 import re
 
 # TODO put in common with dispatcher
@@ -8,7 +8,7 @@ class AssetModel(BaseModel):
     path: str = Field(..., description="Asset path")
     name: str = Field(..., description="Asset name")
     priority: int = Field(..., description="Asset priority according to ranker")
-    size_mb: float = Field(..., description="Asset estimated size")
+    size_mb: Optional[float] = Field(..., description="Asset estimated size")
     ds_id: str = Field(..., description="Dataset id")
     res_id: str = Field(..., description="Resource id")
     asset_id: str = Field(..., description="Asset id")

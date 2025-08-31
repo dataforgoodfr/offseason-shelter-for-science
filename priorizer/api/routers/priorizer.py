@@ -22,8 +22,8 @@ async def mock_ranking():
     priorizer_response = PriorizerResponse(
         asset=mock_ranking
     )
-    print(f"mock_dispatch response: {priorizer_response}")
-
+    
+    app_state._logger.info(f"mock_dispatch response: {priorizer_response}")
     return priorizer_response
 
 @router.post('/ranking', response_model=PriorizerResponse)
@@ -31,11 +31,13 @@ async def ranking():
     app_state._logger.info("________In priorizer")
     # Call last priorizer ranking available
     result = app_state._priorizer.get_rank()
-    app_state._logger.info(result)
-
+    
+    app_state._logger.info(f"Rank size: {len(result['assets'])}")
+    # TODO response can't be complete ranking db for network optimization purpose
     priorizer_response = PriorizerResponse(
-        asset=result["assets"]
+        asset=result["assets"][:10]
     )
-    print(f"Priorizer response: {priorizer_response}")
+    app_state._logger.info("Priorizer response ready")
+    app_state._logger.info(f"Priorizer response: {priorizer_response}")
 
     return priorizer_response

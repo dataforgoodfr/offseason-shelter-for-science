@@ -8,8 +8,8 @@
 import pathlib
 
 from rescue_api.models.dataset_rank import DatasetRank
-#from rescue_api.models.resource import Resource
-#from rescue_api.models.mvp_downloader_library import MvpDownloaderLibrary
+from rescue_api.models.resource import Resource
+from rescue_api.models.mvp_downloader_library import MvpDownloaderLibrary
 from rescue_api.database import get_db
 from sqlalchemy import func
 #import re
@@ -102,42 +102,42 @@ class RankedRequestManager:
 
     def get_rank(self) -> dict:
         session = next(get_db())
-        #results = (
-        #        session.query(
-        #                MvpDownloaderLibrary.dataset_id,
-        #                MvpDownloaderLibrary.event_count,
-        #                MvpDownloaderLibrary.resource_id,
-        #                MvpDownloaderLibrary.deeplink,
-        #                MvpDownloaderLibrary.deeplink_file_size,
-        #                MvpDownloaderLibrary.magnet_link,
-        #                MvpDownloaderLibrary.dg_id,
-        #                MvpDownloaderLibrary.dg_name,
-        #                MvpDownloaderLibrary.dg_description,
-        #                DatasetRank.updated_at,
-        #                DatasetRank.rank
-        #        )
-        #        .join(DatasetRank, DatasetRank.dataset_id == MvpDownloaderLibrary.dataset_id)
-        #        .outerjoin(Resource, Resource.ID == MvpDownloaderLibrary.resource_id)
-        #        .all()
-        #        )
 
+        # Return latest rank update 
+        sub_query = (session.query(DatasetRank.dataset_id, func.max(DatasetRank.updated_at).label("max_updated_at")).group_by(DatasetRank.dataset_id).subquery())
 
-
-        subq = (session.query(DatasetRank.dataset_id, func.max(DatasetRank.updated_at).label("max_updated_at")).group_by(DatasetRank.dataset_id).subquery())
-        ranks = session.query(DatasetRank).join(subq, (DatasetRank.dataset_id == subq.c.dataset_id) & (DatasetRank.updated_at == subq.c.max_updated_at)).all()
+        # Fetch dataset last ranking info accross mvp_downloader_library, dataset_rank and resource table 
+        ranks = (
+                session.query(
+                        MvpDownloaderLibrary.dataset_id,
+                        MvpDownloaderLibrary.resource_id,
+                        MvpDownloaderLibrary.deeplink,
+                        MvpDownloaderLibrary.deeplink_file_size,
+                        MvpDownloaderLibrary.magnet_link,
+                        DatasetRank.event_count,
+                        DatasetRank.updated_at,
+                        DatasetRank.rank,
+                        Resource.dg_id,
+                        Resource.dg_name,
+                        Resource.dg_description
+                )
+                .join(DatasetRank, DatasetRank.dataset_id == MvpDownloaderLibrary.dataset_id)
+                .outerjoin(Resource, Resource.id == MvpDownloaderLibrary.resource_id)
+                .join(sub_query, (DatasetRank.dataset_id == sub_query.c.dataset_id) & (DatasetRank.updated_at == sub_query.c.max_updated_at))
+                .all()
+                )
 
         results = [{
-                "path": "",
-                "name": "",
+                "path": r.dg_description,
+                "name": r.dg_name,
                 "priority": r.rank,
-                "size_mb": 1.0,
+                "size_mb": r.deeplink_file_size,
                 "ds_id": str(r.dataset_id),
-                "res_id": "",
-                "asset_id": "",
-                "url": "magnet:?xt=urn:btih:d2"
+                "res_id": str(r.resource_id),
+                "asset_id": r.dg_id,
+                "url": r.magnet_link if r.magnet_link else r.deeplink
                 }
                 for r in ranks]
-        print(type(ranks))
         return {"assets": results}
         
     def rank(self) -> dict:
