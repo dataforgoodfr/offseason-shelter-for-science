@@ -21,7 +21,7 @@ class AssetModel(BaseModel):
     path: str = Field(..., description="Asset path")
     name: str = Field(..., description="Asset name")
     priority: int = Field(..., description="Asset priority according to ranker")
-    size_mb: float = Field(..., description="Asset estimated size")
+    size_mb: Optional[float] = Field(..., description="Asset estimated size")
     ds_id: str = Field(..., description="Dataset id")
     res_id: str = Field(..., description="Resource id")
     asset_id: str = Field(..., description="Asset id")
@@ -37,7 +37,10 @@ class AssetModel(BaseModel):
             except:
                 pattern = r'magnet:\?xt=urn:[a-z0-9]+:[a-zA-Z0-9]{1,40}'
                 if not re.match(pattern, v):
-                    raise ValueError("Invalid magnet link or URL format")
+                    pattern = r'ftp://.*'
+                    if not re.match(pattern, v):
+                        raise ValueError("Invalid magnet link, FTP or URL format")
+        return v
         return v
 
 # Define a Pydantic model for the response payload

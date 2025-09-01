@@ -22,7 +22,6 @@ class Dispatcher:
         self.ranker_file = self.data_dir / "ranker_mock.json"
         self.alloc_file = self.data_dir / "allocations.json"
         self.rescues_file = self.data_dir / "rescues_mock.json"
-
         self._init_files()
     
     def _init_files(self):
@@ -88,7 +87,6 @@ class Dispatcher:
                     }
                 ])
             )
-
     def _load_json(self, file: Path) -> List[Dict]:
         """Charge un fichier JSON avec gestion robuste des erreurs"""
         try:
