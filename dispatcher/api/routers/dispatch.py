@@ -1,10 +1,3 @@
-<<<<<<< HEAD
-from models.state import app_state
-from fastapi import HTTPException, APIRouter
-from fastapi.responses import JSONResponse
-from models.payload import DispatchRequest, DispatchResponse, Rescues
-=======
->>>>>>> main
 import json
 from os.path import join, dirname
 
