@@ -23,7 +23,7 @@ prod = ["rescue-api"]
 
 [tool.uv.sources]
 rescue-api = [
-    { git = "https://github.com/dataforgoodfr/offseason-shelter-for-science-rescue_db.git", rev = "v0.0.3", group = "prod" },
+    { git = "https://github.com/dataforgoodfr/offseason-shelter-for-science-rescue_db.git", rev = "v0.0.4", group = "prod" },
 ]
 
 [tool.uv]
