@@ -37,8 +37,8 @@ async def mock_dispatch(request: DispatchRequest):
 @router.post('/dispatch', response_model=DispatchResponse)
 async def dispatch(request: DispatchRequest):
     app_state._logger.info("________In dispatch")
-    # Call dispatcher logic
-    result = app_state._dispatcher.allocate_assets(
+    # Call dispatcher logic with priorizer integration
+    result = await app_state._dispatcher.allocate_assets(
         free_space_mb=request.free_space_gb * 1024,
         node_id=request.node_id
     )

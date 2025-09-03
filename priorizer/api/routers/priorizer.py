@@ -35,7 +35,7 @@ async def ranking():
     result = app_state._priorizer.get_rank()
     
     app_state._logger.info(f"Rank size: {len(result['assets'])}")
-    # TODO May need refacto for network optimization purpose
+    # TODO May need refactoring for network optimization purpose
     priorizer_response = PriorizerResponse(
         asset=result["assets"]
     )

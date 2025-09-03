@@ -9,9 +9,9 @@ class AssetModel(BaseModel):
     name: str = Field(..., description="Asset name")
     priority: int = Field(..., description="Asset priority according to ranker")
     size_mb: Optional[float] = Field(..., description="Asset estimated size")
-    ds_id: str = Field(..., description="Dataset id")
-    res_id: str = Field(..., description="Resource id")
-    asset_id: str = Field(..., description="Asset id")
+    ds_id: int = Field(..., description="Dataset id")
+    res_id: int = Field(..., description="Resource id")
+    asset_id: Optional[int] = Field(None, description="Asset id")
     url: Any = Field(..., description="Asset rescue url (Torrent magnet or organization link)")
 
     @field_validator('url')
