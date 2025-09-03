@@ -4,11 +4,15 @@ import pathlib
 
 from rescue_api.models.dataset_rank import DatasetRank
 from rescue_api.models.resource import Resource
+from rescue_api.models.asset import Asset
+from rescue_api.models.asset_resource import asset_resource
 from rescue_api.models.mvp_downloader_library import MvpDownloaderLibrary
 from rescue_api.database import get_db
 from sqlalchemy import func, case, desc
 from datetime import datetime, timezone
 from typing import List
+
+_RANKING_LIMIT = 5
 
 class RankedRequestManager:
     def __init__(self):
@@ -31,24 +35,23 @@ class RankedRequestManager:
                         DatasetRank.event_count,
                         DatasetRank.updated_at,
                         DatasetRank.rank,
-                        Resource.dg_id,
-                        Resource.dg_name,
-                        Resource.dg_description
+                        asset_resource.c.asset_id,
                 )
                 .join(DatasetRank, DatasetRank.dataset_id == MvpDownloaderLibrary.dataset_id)
-                .outerjoin(Resource, Resource.id == MvpDownloaderLibrary.resource_id)
+                .join(Resource, Resource.id == MvpDownloaderLibrary.resource_id)
                 .join(sub_query, (DatasetRank.dataset_id == sub_query.c.dataset_id) & (DatasetRank.updated_at == sub_query.c.max_updated_at))
-                .all()
+                .join(asset_resource, asset_resource.c.resource_id == MvpDownloaderLibrary.resource_id)
+                .limit(_RANKING_LIMIT)
         )
 
         results = [{
-                "path": r.dg_description,
-                "name": r.dg_name,
+                "path": "",
+                "name": "",
                 "priority": r.rank,
                 "size_mb": r.deeplink_file_size,
-                "ds_id": str(r.dataset_id),
-                "res_id": str(r.resource_id),
-                "asset_id": r.dg_id,
+                "ds_id": r.dataset_id,
+                "res_id": r.resource_id,
+                "asset_id": r.asset_id,
                 "url": r.magnet_link if r.magnet_link else r.deeplink
                 }
                 for r in ranks]

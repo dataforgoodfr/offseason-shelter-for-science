@@ -16,16 +16,20 @@ class DispatchRequest(BaseModel):
     free_space_gb: float = Field(..., description="Rescuer available space")
     node_id: Optional[str] = Field(None, description="Node id")
 
-# Define a Pydantic model for asset to rescue
-class AssetModel(BaseModel):
+class BaseAssetModel(BaseModel):
+    # @todo : remove path ?
     path: str = Field(..., description="Asset path")
+    # @todo : remove name ?
     name: str = Field(..., description="Asset name")
     priority: int = Field(..., description="Asset priority according to ranker")
     size_mb: Optional[float] = Field(..., description="Asset estimated size")
-    ds_id: str = Field(..., description="Dataset id")
-    res_id: str = Field(..., description="Resource id")
-    asset_id: str = Field(..., description="Asset id")
+    ds_id: int = Field(..., description="Dataset id")
+    res_id: int = Field(..., description="Resource id")
+    asset_id: Optional[int] = Field(None, description="Asset id")
     url: Any = Field(..., description="Asset rescue url (Torrent magnet or organization link)")
+
+# Define a Pydantic model for asset to rescue
+class AssetModel(BaseAssetModel):
     magnet_link: Any = Field(default=None, description="Torrent magnet link available after downloading the asset.")
     status: Status = Field(default=None, description="Status of the asset's rescue.")
 

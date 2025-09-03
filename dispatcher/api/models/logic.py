@@ -1,7 +1,7 @@
 import json
 import os
 from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Optional
 from datetime import datetime  # Import spécifique de la classe datetime
 import logging
 import uuid
@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from rescue_api.models import Asset, Rescue, Rescuer
 from .payload import AssetModel
+from .priorizer_client import PriorizerClient
 
 # Configuration du logging
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s')
@@ -17,11 +18,12 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 class Dispatcher:
-    def __init__(self):
+    def __init__(self, priorizer_client: Optional[PriorizerClient] = None):
         self.data_dir = Path(__file__).parent.parent / "data"
         self.ranker_file = self.data_dir / "ranker_mock.json"
         self.alloc_file = self.data_dir / "allocations.json"
         self.rescues_file = self.data_dir / "rescues_mock.json"
+        self._priorizer_client = priorizer_client
         self._init_files()
     
     def _init_files(self):
@@ -113,21 +115,37 @@ class Dispatcher:
     def _save_json(file: Path, data: List[Dict]):
         file.write_text(json.dumps(data, indent=2))
     
-    def get_available_assets(self) -> List[Dict]:   
-        """Récupère tous les assets (sans filtrage par allocation)"""
-        return self._load_json(self.ranker_file)
+    async def get_available_assets(self) -> List[Dict]:   
+        """
+        Retrieve all assets (without filtering by allocation).
+        Use priorizer if available, otherwise use the local file.
+        """
+        if self._priorizer_client:
+            try:
+                logger.info("Récupération des assets depuis le priorizer")
+                assets = await self._priorizer_client.get_ranking()
+                # Conversion of AssetModel to dictionaries for compatibility
+                return [asset.model_dump() for asset in assets]
+            except Exception as e:
+                logger.warning(f"Impossible de récupérer depuis le priorizer: {e}, utilisation du fichier local")
+                return self._load_json(self.ranker_file)
+        else:
+            logger.info("Utilisation du fichier local pour les assets")
+            return self._load_json(self.ranker_file)
            
-    def allocate_assets(self, free_space_mb: float, node_id: str = None) -> Dict:
+    async def allocate_assets(self, free_space_mb: float, node_id: str = None) -> Dict:
         """Priorise et alloue les assets (version multi-allocation)"""
-        available = self.get_available_assets()
+        available = await self.get_available_assets()
         selected = []
         remaining_space = free_space_mb
         
         # Tri par priorité (desc) puis taille (asc)
         for asset in sorted(available, key=lambda x: (-x['priority'], x['size_mb'])):
-            if asset['size_mb'] <= remaining_space:
+            # Asset size may not be known yet
+            if asset['size_mb'] is None or asset['size_mb'] <= remaining_space:
                 selected.append(asset)
-                remaining_space -= asset['size_mb']
+                if asset['size_mb'] is not None:
+                   remaining_space -= asset['size_mb']
         
         if not selected:
             return None
@@ -143,7 +161,7 @@ class Dispatcher:
             "res_id": a['res_id'],
             "asset_id": a['asset_id'],
             "name": a['name'],
-            "size_mb": float(a['size_mb']),
+            "size_mb": float(a['size_mb']) if a['size_mb'] is not None else None,
             "priority": int(a['priority']),
             "url": a['url']
         } for a in selected]
@@ -153,7 +171,7 @@ class Dispatcher:
 
         return {
             "node_id": node_id,
-            "allocated_size_mb": sum(a['size_mb'] for a in selected),
+            "allocated_size_mb": sum(a['size_mb'] for a in selected if a['size_mb'] is not None),
             "assets": selected,
             "allocation_id": str(uuid.uuid4())
         }
@@ -161,7 +179,10 @@ class Dispatcher:
 
     def upsert_rescues_to_db(self, rescuer_id: int, assets: List[AssetModel], db: Session) -> Dict:
         if not self._rescuer_exists(rescuer_id=rescuer_id, db=db):
+            logger.error(f"Rescuer with id={rescuer_id} doesn't exist in the database.")
             return {}
+
+        logger.info(f"Upserting rescues to DB for rescuer_id={rescuer_id}")
 
         if not self._are_assets_data_consistent(assets=assets, db=db):
             return {}
