@@ -2,9 +2,15 @@ version = 1
 revision = 3
 requires-python = ">=3.9"
 resolution-markers = [
-    "python_full_version >= '3.10'",
+    "python_full_version >= '3.12'",
+    "python_full_version == '3.11.*'",
+    "python_full_version == '3.10.*'",
     "python_full_version < '3.10'",
 ]
+conflicts = [[
+    { package = "dispatcher-api", group = "dev" },
+    { package = "dispatcher-api", group = "prod" },
+]]
 
 [[package]]
 name = "alembic"
@@ -35,10 +41,10 @@ name = "anyio"
 version = "4.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "exceptiongroup", marker = "python_full_version < '3.11'" },
+    { name = "exceptiongroup", marker = "python_full_version < '3.11' or (extra == 'group-14-dispatcher-api-dev' and extra == 'group-14-dispatcher-api-prod')" },
     { name = "idna" },
     { name = "sniffio" },
-    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13' or (extra == 'group-14-dispatcher-api-dev' and extra == 'group-14-dispatcher-api-prod')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/95/7d/4c1bd541d4dffa1b52bd83fb8527089e097a106fc90b467a7313b105f840/anyio-4.9.0.tar.gz", hash = "sha256:673c0c244e15788651a4ff38710fea9675823028a6f08a5eda409e0c9840a028", size = 190949, upload-time = "2025-03-17T00:02:54.77Z" }
 wheels = [
@@ -74,7 +80,7 @@ resolution-markers = [
     "python_full_version < '3.10'",
 ]
 dependencies = [
-    { name = "colorama", marker = "python_full_version < '3.10' and sys_platform == 'win32'" },
+    { name = "colorama", marker = "(python_full_version < '3.10' and sys_platform == 'win32') or (python_full_version >= '3.10' and extra == 'group-14-dispatcher-api-dev' and extra == 'group-14-dispatcher-api-prod') or (sys_platform != 'win32' and extra == 'group-14-dispatcher-api-dev' and extra == 'group-14-dispatcher-api-prod')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/b9/2e/0090cbf739cee7d23781ad4b89a9894a41538e4fcf4c31dcdd705b78eb8b/click-8.1.8.tar.gz", hash = "sha256:ed53c9d8990d83c2a27deae68e4ee337473f6330c040a31d4225c9574d16096a", size = 226593, upload-time = "2024-12-21T18:38:44.339Z" }
 wheels = [
@@ -86,10 +92,12 @@ name = "click"
 version = "8.2.1"
 source = { registry = "https://pypi.org/simple" }
 resolution-markers = [
-    "python_full_version >= '3.10'",
+    "python_full_version >= '3.12'",
+    "python_full_version == '3.11.*'",
+    "python_full_version == '3.10.*'",
 ]
 dependencies = [
-    { name = "colorama", marker = "python_full_version >= '3.10' and sys_platform == 'win32'" },
+    { name = "colorama", marker = "(python_full_version >= '3.10' and sys_platform == 'win32') or (python_full_version < '3.10' and extra == 'group-14-dispatcher-api-dev' and extra == 'group-14-dispatcher-api-prod') or (sys_platform != 'win32' and extra == 'group-14-dispatcher-api-dev' and extra == 'group-14-dispatcher-api-prod')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/60/6c/8ca2efa64cf75a977a0d7fac081354553ebe483345c734fb6b6515d96bbc/click-8.2.1.tar.gz", hash = "sha256:27c491cc05d968d271d5a1db13e3b5a184636d9d930f148c50b038f0d0646202", size = 286342, upload-time = "2025-05-20T23:19:49.832Z" }
 wheels = [
@@ -123,8 +131,11 @@ dependencies = [
 ]
 
 [package.dev-dependencies]
+dev = [
+    { name = "rescue-api", version = "0.1.0", source = { editable = "../../lib/rescue_db" } },
+]
 prod = [
-    { name = "rescue-api" },
+    { name = "rescue-api", version = "0.1.0", source = { git = "https://github.com/dataforgoodfr/offseason-shelter-for-science-rescue_db.git?rev=v0.0.3#1449181449f5161d6c0b2c67bf4f2999b677fcfa" } },
 ]
 
 [package.metadata]
@@ -142,6 +153,7 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
+dev = [{ name = "rescue-api", editable = "../../lib/rescue_db" }]
 prod = [{ name = "rescue-api", git = "https://github.com/dataforgoodfr/offseason-shelter-for-science-rescue_db.git?rev=v0.0.3" }]
 
 [[package]]
@@ -171,7 +183,7 @@ name = "exceptiongroup"
 version = "1.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11' or (extra == 'group-14-dispatcher-api-dev' and extra == 'group-14-dispatcher-api-prod')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/0b/9f/a65090624ecf468cdca03533906e7c69ed7588582240cfe7cc9e770b50eb/exceptiongroup-1.3.0.tar.gz", hash = "sha256:b241f5885f560bc56a59ee63ca4c6a8bfa46ae4ad651af316d4e81817bb9fd88", size = 29749, upload-time = "2025-05-10T17:42:51.123Z" }
 wheels = [
@@ -796,13 +808,49 @@ wheels = [
 name = "rescue-api"
 version = "0.1.0"
 source = { git = "https://github.com/dataforgoodfr/offseason-shelter-for-science-rescue_db.git?rev=v0.0.3#1449181449f5161d6c0b2c67bf4f2999b677fcfa" }
+resolution-markers = [
+    "python_full_version >= '3.12'",
+    "python_full_version == '3.11.*'",
+    "python_full_version == '3.10.*'",
+    "python_full_version < '3.10'",
+]
 dependencies = [
     { name = "alembic" },
-    { name = "fastapi", extra = ["standard"] },
+    { name = "fastapi", extra = ["standard"], marker = "extra == 'group-14-dispatcher-api-prod'" },
     { name = "psycopg2-binary" },
     { name = "pydantic-settings" },
     { name = "sqlalchemy" },
 ]
+
+[[package]]
+name = "rescue-api"
+version = "0.1.0"
+source = { editable = "../../lib/rescue_db" }
+resolution-markers = [
+    "python_full_version >= '3.12'",
+    "python_full_version == '3.11.*'",
+    "python_full_version == '3.10.*'",
+    "python_full_version < '3.10'",
+]
+dependencies = [
+    { name = "alembic" },
+    { name = "fastapi", extra = ["standard"], marker = "extra == 'group-14-dispatcher-api-dev'" },
+    { name = "psycopg2-binary" },
+    { name = "pydantic-settings" },
+    { name = "sqlalchemy" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "alembic", specifier = ">=1.16.2" },
+    { name = "fastapi", extras = ["standard"], specifier = ">=0.115.13" },
+    { name = "psycopg2-binary", specifier = ">=2.9.9" },
+    { name = "pydantic-settings", specifier = ">=2.9.1" },
+    { name = "sqlalchemy", specifier = ">=2.0.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [{ name = "ruff", specifier = ">=0.11.13" }]
 
 [[package]]
 name = "rich"
@@ -822,8 +870,8 @@ name = "rich-toolkit"
 version = "0.14.9"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "click", version = "8.1.8", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
-    { name = "click", version = "8.2.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+    { name = "click", version = "8.1.8", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10' or (extra == 'group-14-dispatcher-api-dev' and extra == 'group-14-dispatcher-api-prod')" },
+    { name = "click", version = "8.2.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10' or (extra == 'group-14-dispatcher-api-dev' and extra == 'group-14-dispatcher-api-prod')" },
     { name = "rich" },
     { name = "typing-extensions" },
 ]
@@ -984,7 +1032,7 @@ name = "sqlalchemy"
 version = "2.0.43"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "greenlet", marker = "(python_full_version < '3.14' and platform_machine == 'AMD64') or (python_full_version < '3.14' and platform_machine == 'WIN32') or (python_full_version < '3.14' and platform_machine == 'aarch64') or (python_full_version < '3.14' and platform_machine == 'amd64') or (python_full_version < '3.14' and platform_machine == 'ppc64le') or (python_full_version < '3.14' and platform_machine == 'win32') or (python_full_version < '3.14' and platform_machine == 'x86_64')" },
+    { name = "greenlet", marker = "(python_full_version < '3.14' and platform_machine == 'AMD64') or (python_full_version < '3.14' and platform_machine == 'WIN32') or (python_full_version < '3.14' and platform_machine == 'aarch64') or (python_full_version < '3.14' and platform_machine == 'amd64') or (python_full_version < '3.14' and platform_machine == 'ppc64le') or (python_full_version < '3.14' and platform_machine == 'win32') or (python_full_version < '3.14' and platform_machine == 'x86_64') or (platform_machine != 'AMD64' and platform_machine != 'WIN32' and platform_machine != 'aarch64' and platform_machine != 'amd64' and platform_machine != 'ppc64le' and platform_machine != 'win32' and platform_machine != 'x86_64' and extra == 'group-14-dispatcher-api-dev' and extra == 'group-14-dispatcher-api-prod') or (platform_machine == 'AMD64' and extra == 'group-14-dispatcher-api-dev' and extra == 'group-14-dispatcher-api-prod') or (platform_machine == 'WIN32' and extra == 'group-14-dispatcher-api-dev' and extra == 'group-14-dispatcher-api-prod') or (platform_machine == 'aarch64' and extra == 'group-14-dispatcher-api-dev' and extra == 'group-14-dispatcher-api-prod') or (platform_machine == 'amd64' and extra == 'group-14-dispatcher-api-dev' and extra == 'group-14-dispatcher-api-prod') or (platform_machine == 'ppc64le' and extra == 'group-14-dispatcher-api-dev' and extra == 'group-14-dispatcher-api-prod') or (platform_machine == 'win32' and extra == 'group-14-dispatcher-api-dev' and extra == 'group-14-dispatcher-api-prod') or (platform_machine == 'x86_64' and extra == 'group-14-dispatcher-api-dev' and extra == 'group-14-dispatcher-api-prod')" },
     { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/d7/bc/d59b5d97d27229b0e009bd9098cd81af71c2fa5549c580a0a67b9bed0496/sqlalchemy-2.0.43.tar.gz", hash = "sha256:788bfcef6787a7764169cfe9859fe425bf44559619e1d9f56f5bddf2ebf6f417", size = 9762949, upload-time = "2025-08-11T14:24:58.438Z" }
@@ -1038,7 +1086,7 @@ version = "0.47.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
-    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13' or (extra == 'group-14-dispatcher-api-dev' and extra == 'group-14-dispatcher-api-prod')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/04/57/d062573f391d062710d4088fa1369428c38d51460ab6fedff920efef932e/starlette-0.47.2.tar.gz", hash = "sha256:6ae9aa5db235e4846decc1e7b79c4f346adf41e9777aebeb49dfd09bbd7023d8", size = 2583948, upload-time = "2025-07-20T17:31:58.522Z" }
 wheels = [
@@ -1089,8 +1137,8 @@ name = "typer"
 version = "0.16.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "click", version = "8.1.8", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
-    { name = "click", version = "8.2.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+    { name = "click", version = "8.1.8", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10' or (extra == 'group-14-dispatcher-api-dev' and extra == 'group-14-dispatcher-api-prod')" },
+    { name = "click", version = "8.2.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10' or (extra == 'group-14-dispatcher-api-dev' and extra == 'group-14-dispatcher-api-prod')" },
     { name = "rich" },
     { name = "shellingham" },
     { name = "typing-extensions" },
@@ -1135,7 +1183,7 @@ name = "tzlocal"
 version = "5.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "tzdata", marker = "sys_platform == 'win32'" },
+    { name = "tzdata", marker = "sys_platform == 'win32' or (extra == 'group-14-dispatcher-api-dev' and extra == 'group-14-dispatcher-api-prod')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/8b/2e/c14812d3d4d9cd1773c6be938f89e5735a1f11a9f184ac3639b93cef35d5/tzlocal-5.3.1.tar.gz", hash = "sha256:cceffc7edecefea1f595541dbd6e990cb1ea3d19bf01b2809f362a03dd7921fd", size = 30761, upload-time = "2025-03-05T21:17:41.549Z" }
 wheels = [
@@ -1156,10 +1204,10 @@ name = "uvicorn"
 version = "0.35.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "click", version = "8.1.8", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
-    { name = "click", version = "8.2.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
+    { name = "click", version = "8.1.8", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10' or (extra == 'group-14-dispatcher-api-dev' and extra == 'group-14-dispatcher-api-prod')" },
+    { name = "click", version = "8.2.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10' or (extra == 'group-14-dispatcher-api-dev' and extra == 'group-14-dispatcher-api-prod')" },
     { name = "h11" },
-    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11' or (extra == 'group-14-dispatcher-api-dev' and extra == 'group-14-dispatcher-api-prod')" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/5e/42/e0e305207bb88c6b8d3061399c6a961ffe5fbb7e2aa63c9234df7259e9cd/uvicorn-0.35.0.tar.gz", hash = "sha256:bc662f087f7cf2ce11a1d7fd70b90c9f98ef2e2831556dd078d131b96cc94a01", size = 78473, upload-time = "2025-06-28T16:15:46.058Z" }
 wheels = [
@@ -1168,11 +1216,11 @@ wheels = [
 
 [package.optional-dependencies]
 standard = [
-    { name = "colorama", marker = "sys_platform == 'win32'" },
+    { name = "colorama", marker = "sys_platform == 'win32' or (extra == 'group-14-dispatcher-api-dev' and extra == 'group-14-dispatcher-api-prod')" },
     { name = "httptools" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
-    { name = "uvloop", marker = "platform_python_implementation != 'PyPy' and sys_platform != 'cygwin' and sys_platform != 'win32'" },
+    { name = "uvloop", marker = "(platform_python_implementation != 'PyPy' and sys_platform != 'cygwin' and sys_platform != 'win32') or (platform_python_implementation == 'PyPy' and extra == 'group-14-dispatcher-api-dev' and extra == 'group-14-dispatcher-api-prod') or (sys_platform == 'cygwin' and extra == 'group-14-dispatcher-api-dev' and extra == 'group-14-dispatcher-api-prod') or (sys_platform == 'win32' and extra == 'group-14-dispatcher-api-dev' and extra == 'group-14-dispatcher-api-prod')" },
     { name = "watchfiles" },
     { name = "websockets" },
 ]
