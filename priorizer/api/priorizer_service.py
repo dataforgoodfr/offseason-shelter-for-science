@@ -20,7 +20,8 @@ logger.setLevel(logging.INFO)
 
 # Initialisation du scheduler
 scheduler = BackgroundScheduler(daemon=True)
-scheduler.start()
+# broija 2025-09-04 : temporary disabling scheduler
+# scheduler.start()
 atexit.register(lambda: scheduler.shutdown())
 
 def priority_update():
