@@ -12,7 +12,7 @@ from sqlalchemy import func, case, desc
 from datetime import datetime, timezone
 from typing import List
 
-_RANKING_LIMIT = 5
+_RANKING_LIMIT = 100
 
 class RankedRequestManager:
     def __init__(self):
