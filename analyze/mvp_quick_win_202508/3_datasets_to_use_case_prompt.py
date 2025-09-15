@@ -5,7 +5,8 @@ import datetime
 import pathlib
 import json
 
-DEFAULT_OUTPUT_DIR = "/data/analyze"
+SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
+DEFAULT_OUTPUT_DIR = SCRIPT_DIR / "data"
 
 PLACEHOLDER_ORG_NAME = "{{ORG_NAME}}"
 PLACEHOLDER_ORG_TITLE = "{{ORG_TITLE}}"
@@ -95,7 +96,7 @@ for placeholder in PLACEHOLDERS:
 
 file_datetime = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
-output_dir = args.output_dir.resolve() / "prompts" / file_datetime
+output_dir = args.output_dir.resolve() / "prompts" / f"most_popular_datasets_{file_datetime}"
 if not output_dir.is_dir():
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -161,7 +162,7 @@ with args.input_file.open('r', encoding='utf-8') as f:
                 prompt += format_datasets_for_prompt(datasets)
                 prompt += f"{prompt_newline}// --------------------{prompt_newline}"
 
-        output_file = output_dir / f"most_popular_datasets_{org_name}_{file_datetime}.txt"
+        output_file = output_dir / f"{org_name}_{file_datetime}.txt"
         with output_file.open('w', encoding='utf-8') as out_f:
             out_f.write(prompt)
         print(f"Prompt for organization '{org_name}' saved to {output_file}")

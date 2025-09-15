@@ -1,0 +1,19 @@
+[project]
+name = "dispatcher-api"
+version = "0.1.0"
+description = "Assign a list of db to rescue to rescuer"
+readme = "README.md"
+requires-python = ">=3.9"
+
+dependencies = [
+    "pydantic>=2.11.7",
+    "pydantic_core>=2.33.2",
+    "psycopg2-binary>=2.9.9",
+    "sqlalchemy>=2.0.0",
+    "rescue-api"
+]
+
+[tool.uv.sources]
+rescue-api = [
+    { git = "https://github.com/dataforgoodfr/offseason-shelter-for-science-rescue_db.git", rev = "v0.0.4" },
+]
