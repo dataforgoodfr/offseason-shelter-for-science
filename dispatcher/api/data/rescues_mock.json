@@ -1,0 +1,20 @@
+[
+  {
+    "asset_id": 69532,
+    "rescuer_id": 198574,
+    "magnet_link": "magnet:?xt=urn:btih:d1",
+    "status": "SUCCESS"
+  },
+  {
+    "asset_id": 71465,
+    "rescuer_id": 154562,
+    "magnet_link": "magnet:?xt=urn:btih:d3-1",
+    "status": "SUCCESS"
+  },
+  {
+    "asset_id": 568712,
+    "rescuer_id": 154562,
+    "magnet_link": "magnet:?xt=urn:btih:d4",
+    "status": "SUCCESS"
+  }
+]

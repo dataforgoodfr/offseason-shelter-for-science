@@ -6,28 +6,31 @@ readme = "README.md"
 requires-python = ">=3.9"
 
 dependencies = [
-    "apscheduler>=3.11.0",
     "fastapi[standard]>=0.116.1",
     "pydantic>=2.11.7",
     "pydantic_core>=2.33.2",
-    "python-dotenv>=1.1.1",
-    "starlette>=0.47.2",
-    "typing-extensions>=4.14.1",
     "uvicorn==0.35.0",
     "psycopg2-binary>=2.9.9",
     "sqlalchemy>=2.0.0",
+    "httpx>=0.25.0",
 ]
 
 [dependency-groups]
+dev = ["rescue-api"]
 prod = ["rescue-api"]
 
 [tool.uv.sources]
 rescue-api = [
-    { git = "https://github.com/dataforgoodfr/offseason-shelter-for-science-rescue_db.git", rev = "v0.0.4", group = "prod" },
+    { git = "https://github.com/dataforgoodfr/offseason-shelter-for-science-rescue_db.git", rev = "v0.0.3", group = "prod" },
+    { path = "/lib/rescue_db/", editable = true, group = "dev" },
 ]
 
 [tool.uv]
 default-groups = ["prod"]
 
 conflicts = [
+    [
+        { group = "dev" },
+        { group = "prod" },
+    ]
 ]
