@@ -60,9 +60,56 @@ class RankedRequestManager:
     def compute_rank(self) -> List[dict]:
         session = next(get_db())
 
-        # List last ranks for each dataset_id
-        sub_query = (session.query(DatasetRank.dataset_id, func.max(DatasetRank.updated_at).label("max_updated_at")).group_by(DatasetRank.dataset_id).subquery())
-       
+        
+        latest_updated = (
+                session.query(
+                        Rank.dataset_id,
+                        func.max(Rank.updated_at).label("max_updated_at")
+                        )
+                        .group_by(Rank.dataset_id)
+                        .subquery()
+                )
+        # List last updated ranks for each dataset_id
+        latest_ranks = (
+                session.query(
+                Rank.dataset_id,
+                Rank.rank,
+                Rank.updated_at
+                )
+                .join(
+                latest_updated,
+                and_(
+                        Rank.dataset_id == latest_updated.c.dataset_id,
+                        Rank.updated_at == latest_updated.c.max_updated_at
+                )
+                )
+                .subquery()
+        )
+
+        min_rank_per_dataset = (
+                session.query(
+                latest_ranks.c.dataset_id,
+                func.min(latest_ranks.c.rank).label("min_rank")
+                )
+                .group_by(latest_ranks.c.dataset_id)
+                .subquery()
+        )
+
+        results = (
+                session.query(
+                latest_ranks.c.dataset_id,
+                latest_ranks.c.updated_at,
+                min_rank_per_dataset.c.min_rank
+                )
+                .join(
+                min_rank_per_dataset,
+                and_(
+                        latest_ranks.c.dataset_id == min_rank_per_dataset.c.dataset_id,
+                        latest_ranks.c.rank == min_rank_per_dataset.c.min_rank
+                )
+                )
+                .all()
+        )
         # First rank never rescued assets (=with no magnet link), the more events there are the higher the rank is
         # Apply same methodology to assets with magnet_link 
         ranks = (
