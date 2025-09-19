@@ -8,6 +8,7 @@ from models.state import app_state
 from routers import priorizer
 from rescue_api.models.dataset_rank import DatasetRank
 from rescue_api.database import get_db
+import csv
 
 # App configuration
 app = FastAPI()
@@ -21,9 +22,10 @@ logger.setLevel(logging.INFO)
 # Initialisation du scheduler
 scheduler = BackgroundScheduler(daemon=True)
 # broija 2025-09-04 : temporary disabling scheduler
-# scheduler.start()
+#scheduler.start()
 atexit.register(lambda: scheduler.shutdown())
 
+#TODO Create end point to force manual ranking ?
 def priority_update():
     """Chroned asset priority ranking"""
     try:
@@ -45,11 +47,11 @@ def priority_update():
 @app.on_event("startup")
 def init_scheduler():
     """Initialise le scheduler au démarrage"""
-    # Tâche toutes les 10 minutes
+    # Tâche toutes les 2 minutes
     scheduler.add_job(
         priority_update,
         'interval',
-        minutes=2,
+        minutes=10,
         next_run_time=datetime.now()  # Exécution immédiate au démarrage
     )
 

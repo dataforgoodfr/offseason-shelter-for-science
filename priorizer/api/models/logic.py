@@ -8,11 +8,13 @@ from rescue_api.models.asset import Asset
 from rescue_api.models.asset_resource import asset_resource
 from rescue_api.models.mvp_downloader_library import MvpDownloaderLibrary
 from rescue_api.database import get_db
-from sqlalchemy import func, case, desc
+from sqlalchemy import func, case, desc, and_
 from datetime import datetime, timezone
 from typing import List
 
 _RANKING_LIMIT = 100
+
+
 
 class RankedRequestManager:
     def __init__(self):
@@ -60,76 +62,60 @@ class RankedRequestManager:
     def compute_rank(self) -> List[dict]:
         session = next(get_db())
 
-        
+        # List last rank timestamp by dataset_id
         latest_updated = (
                 session.query(
-                        Rank.dataset_id,
-                        func.max(Rank.updated_at).label("max_updated_at")
+                        DatasetRank.dataset_id,
+                        func.min(DatasetRank.rank).label("rank"),
+                        func.max(DatasetRank.event_count).label("event_count"),                      
+                        func.max(DatasetRank.updated_at).label("updated_at")
                         )
-                        .group_by(Rank.dataset_id)
+                        .group_by(DatasetRank.dataset_id)
                         .subquery()
                 )
-        # List last updated ranks for each dataset_id
-        latest_ranks = (
+        # Magnets are at resource_id level, dataset won't be considered as completed until all resource have their magnet. mvp table is at resource level and can have duplicates in datasets.
+        # Could be useful to create a model dataset/completed to ensure all dataset's resources have their magnet.
+        ds_magnets = (
                 session.query(
-                Rank.dataset_id,
-                Rank.rank,
-                Rank.updated_at
-                )
-                .join(
-                latest_updated,
-                and_(
-                        Rank.dataset_id == latest_updated.c.dataset_id,
-                        Rank.updated_at == latest_updated.c.max_updated_at
-                )
-                )
+                        MvpDownloaderLibrary.dataset_id,
+                        func.count(MvpDownloaderLibrary.resource_id).label("nb_resources"),
+                        func.sum(
+                                case(
+                                        (MvpDownloaderLibrary.magnet_link==None, 0),
+                                        else_=1
+                                        )
+                                ).label("nb_magnets")
+                        )
+                        .group_by(MvpDownloaderLibrary.dataset_id)
                 .subquery()
         )
-
-        min_rank_per_dataset = (
+        
+        ds_completion_status = (
                 session.query(
-                latest_ranks.c.dataset_id,
-                func.min(latest_ranks.c.rank).label("min_rank")
-                )
-                .group_by(latest_ranks.c.dataset_id)
-                .subquery()
-        )
-
-        results = (
-                session.query(
-                latest_ranks.c.dataset_id,
-                latest_ranks.c.updated_at,
-                min_rank_per_dataset.c.min_rank
-                )
-                .join(
-                min_rank_per_dataset,
-                and_(
-                        latest_ranks.c.dataset_id == min_rank_per_dataset.c.dataset_id,
-                        latest_ranks.c.rank == min_rank_per_dataset.c.min_rank
-                )
-                )
-                .all()
+                        ds_magnets.c.dataset_id,
+                        case((ds_magnets.c.nb_magnets==ds_magnets.c.nb_resources, True), else_=False).label("completed")
+                ).subquery()
         )
         # First rank never rescued assets (=with no magnet link), the more events there are the higher the rank is
         # Apply same methodology to assets with magnet_link 
         ranks = (
                 session.query(
-                        MvpDownloaderLibrary.magnet_link,
-                        DatasetRank.dataset_id,
-                        DatasetRank.event_count,
-                        DatasetRank.updated_at,
-                        DatasetRank.rank
+                        ds_completion_status.c.completed,
+                        latest_updated.c.dataset_id,
+                        latest_updated.c.event_count,
+                        latest_updated.c.updated_at,
+                        latest_updated.c.rank
                 )
-                .join(DatasetRank, DatasetRank.dataset_id == MvpDownloaderLibrary.dataset_id)
-                .join(sub_query, (DatasetRank.dataset_id == sub_query.c.dataset_id) & (DatasetRank.updated_at == sub_query.c.max_updated_at))
+                .join(
+                        latest_updated, 
+                        latest_updated.c.dataset_id == ds_completion_status.c.dataset_id
+                )
                 .order_by(
-                        case((MvpDownloaderLibrary.magnet_link==None, 0), else_=1), 
-                        desc(DatasetRank.event_count)
+                        case((ds_completion_status.c.completed==False, 0), else_=1), 
+                        desc(latest_updated.c.event_count)
                 )
                 .all()
         )
-
-        row_count = session.query(func.count(DatasetRank.id)).scalar()
 
         # Keep same update time for whole new ranks
         update_ts = datetime.now(timezone.utc)
@@ -139,14 +125,14 @@ class RankedRequestManager:
                 "event_count": r.event_count,
                 "db_rank": r.rank,
                 "rank": idx + 1,
-                "url": r.magnet_link,
                 "updated_at": r.updated_at
                 }
-                for idx, r in enumerate(ranks)]        
-        
+                for idx, r in enumerate(ranks)]
+
+        last_idx = session.query(func.max(DatasetRank.id)).scalar()
         # Only return amended ranks
         fil_results = [{
-                "id": row_count + idx + 1,
+                "id": last_idx + idx + 1,
                 "dataset_id": r["dataset_id"],
                 "ranking_id": r["ranking_id"],
                 "event_count": r["event_count"],
@@ -154,5 +140,5 @@ class RankedRequestManager:
                 "updated": r["updated_at"],
                 "rank": r["rank"]
         } for idx, r in enumerate(results) if r["db_rank"] != r["rank"]]
-
         return fil_results
+        
