@@ -138,15 +138,10 @@ class APIManager(APIManagerInterface):
     def _add_models(self, models: Dict[str, Model]):
         self.models.update(models)
 
-    def _build_model_dict(self, models: List[str | Model]) -> Dict[str, Model]:
-        for model in models:
-            if isinstance(model, str):
-                # model is an id
-                self.models[model] = Model(id=model, name=model)
-            else:
-                # model is a class
-                mdl = model()
-                self.models[mdl.id] = mdl
+    def _build_model_dict(self, models: List[type[Model]]) -> Dict[str, Model]:
+        for model_class in models:
+            model = model_class()
+            self.models[model.id] = model
 
     def _get_api_key(self) -> str:
         """Retrieves the API key securely."""

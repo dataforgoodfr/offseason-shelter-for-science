@@ -115,9 +115,9 @@ def send_prompt(
             all_responses.append(response_data)
 
             if response_data.success:
-                print(f"Response received ({response_data.usage.total_tokens} tokens)")
-                print(f"- Prompt: {response_data.usage.prompt_tokens} tokens")
-                print(f"- Response: {response_data.usage.completion_tokens} tokens")
+                print(f"Response received ({response_data.usage.get_total_tokens()} tokens)")
+                print(f"- Prompt: {response_data.usage.get_prompt_tokens()} tokens")
+                print(f"- Response: {response_data.usage.get_completion_tokens()} tokens")
                 print(f"\n```\n{response_data.response}\n```")
             else:
                 print(f"!!! Error: {response_data.error}")
@@ -148,7 +148,7 @@ def send_prompt(
     print(f"Failed: {failed}")
     
     if successful > 0:
-        total_tokens = sum(r.usage.total_tokens for r in all_responses if r.success)
+        total_tokens = sum(r.usage.get_total_tokens() for r in all_responses if r.success)
         print(f"Total tokens used: {total_tokens}")
 
 def main():

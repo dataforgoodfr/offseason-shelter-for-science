@@ -33,25 +33,27 @@ class Model:
         self.output_cost = output_cost
 
         self.usage = None
-        self.usage_logs: List[Usage] = []
-        
         self.load_usage()
+        self.usage_logs: List[Usage] = []
 
     def get_usage_file_path(self) -> Path:
         return self.get_usage_directory() / f"{self.id}.json"
 
-    def load_usage(self) -> Usage | None:
-        if self.usage is not None:
+    def load_usage(self, force=False) -> Usage:
+        result = None
+
+        if not force and self.usage is not None:
             return self.usage
 
         file_path = self.get_usage_file_path()
         if not file_path.exists():
-            return None
-
-        with open(file_path, "r") as f:
-            self.usage = Usage(**json.load(f))
-
-        return self.usage
+            result = Usage()
+        else:
+            with open(file_path, "r") as f:
+                result = Usage(**json.load(f))
+        
+        self.usage = result
+        return result
 
     def save_usage(self) -> None:
         file_path = self.get_usage_file_path()
@@ -63,18 +65,16 @@ class Model:
     def update_usage(self, usage: Usage):
         self.add_usage_log(usage)
 
-        self.usage.prompt_tokens += usage.prompt_tokens
-        self.usage.completion_tokens += usage.completion_tokens
-        self.usage.total_tokens += usage.total_tokens
+        self.usage.update_from_usage(usage)
 
     def add_usage_log(self, usage: Usage):
         self.usage_logs.append(usage)
 
     def estimate_input_spending(self) -> float:
         if self.input_cost is None:
-            raise ValueError("Input cost is not set")
+            raise ValueError("Input cost is not set for model {self.id}")
 
-        result = self.input_cost * self.usage.prompt_tokens / 1000000
+        result = self.input_cost * self.usage.get_prompt_tokens() / 1000000
         print(f"Input spending for {self.id}: {result}")
 
         return result
@@ -83,7 +83,7 @@ class Model:
         if self.output_cost is None:
             raise ValueError("Output cost is not set")
 
-        result = self.output_cost * self.usage.completion_tokens / 1000000
+        result = self.output_cost * self.usage.get_completion_tokens() / 1000000
         print(f"Output spending for {self.id}: {result}")
 
         return result
