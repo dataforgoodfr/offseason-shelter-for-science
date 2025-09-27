@@ -5,9 +5,12 @@ import pathlib
 import json
 import time
 from typing import List, Dict, Any
-from ai.api.manager import create_manager, APIManagerInterface
+
+from ai.api.manager import APIManagerInterface, get_instance as get_manager_instance
+from ai.api.spending import SpendingEstimator
 
 import importlib
+
 PROMPT_DELIMITER = importlib.import_module("3_datasets_to_use_case_prompt").PROMPT_DELIMITER
 
 _SCRIPT_DIR = pathlib.Path(__file__).parent
@@ -42,7 +45,7 @@ def list_prompts_from_directory(directory: pathlib.Path, limit: int = 1) -> List
     prompt_files.sort(key=lambda x: x.name)
     
     # Limit the number of files
-    return prompt_files[:limit]
+    return prompt_files[:limit] if limit else prompt_files
 
 def save_response(response_data: Dict[str, Any], output_dir: pathlib.Path):
     """Saves the response to a JSON file."""
@@ -89,10 +92,12 @@ def send_prompt(
         print(f"Error initializing API client: {e}")
         return 1
 
-    if model is None:
+    if not model:
         model = manager.get_default_model_id()
 
     print(f"Processing {len(prompt_files)} prompt file(s) with model {model}")
+
+    manager.set_spending_estimator(SpendingEstimator.create_instance(spending_limit))
 
     # Process each prompt file
     all_responses = []
@@ -106,19 +111,19 @@ def send_prompt(
         prompts = prompt_content.split(PROMPT_DELIMITER)
 
         for i, prompt in enumerate(prompts):
-            if i >= prompt_limit:
+            if prompt_limit and i >= prompt_limit:
                 break
 
             print(f"\nSending prompt to API {manager.get_name()}, model {model}...")
-            print(f"\n```\n{prompt}\n```")
-            response_data = manager.send_prompt(model, prompt, spending_limit)
+            print(f"\n***\n{prompt}\n***")
+            response_data = manager.send_prompt(model, prompt)
             all_responses.append(response_data)
 
             if response_data.success:
                 print(f"Response received ({response_data.usage.get_total_tokens()} tokens)")
                 print(f"- Prompt: {response_data.usage.get_prompt_tokens()} tokens")
                 print(f"- Response: {response_data.usage.get_completion_tokens()} tokens")
-                print(f"\n```\n{response_data.response}\n```")
+                print(f"\n***\n{response_data.response}\n***")
             else:
                 print(f"!!! Error: {response_data.error}")
         
@@ -150,6 +155,9 @@ def send_prompt(
     if successful > 0:
         total_tokens = sum(r.usage.get_total_tokens() for r in all_responses if r.success)
         print(f"Total tokens used: {total_tokens}")
+
+        total_spending = SpendingEstimator.get_instance().estimate_spending()
+        print(f"Total spending = {total_spending}")
 
 def main():
     """Main function of the script."""
@@ -228,7 +236,7 @@ def main():
         parser.print_help()
         return 1
 
-    manager = create_manager(args.api)
+    manager = get_manager_instance(args.api)
     if args.cmd == "list":
         print(f"Manager: {manager.get_name()} : list models")
         models = manager.get_available_models()

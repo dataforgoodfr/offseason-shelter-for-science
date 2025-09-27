@@ -34,14 +34,15 @@ class MockManager(APIManager):
         return DEFAULT_MODEL_ID
 
     def _send_prompt(self, model: Model, prompt: str) -> RequestResult:
+        prompt_tokens = len(prompt.split(' '))
         return RequestResult(
             success=True,
             prompt=prompt,
             model=model.id,
             response=f"Mock response from {model.id}",
             usage={
-                "prompt_tokens": 10,
+                "prompt_tokens": prompt_tokens,
                 "completion_tokens": 10,
-                "total_tokens": 20
+                "total_tokens": prompt_tokens + 10
             }
         )

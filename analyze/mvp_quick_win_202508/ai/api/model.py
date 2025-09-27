@@ -7,7 +7,7 @@ from typing import List
 from ai.api.result import Usage
 
 class Model:
-    usage_directory = Path(__file__).parent.parent / "data" / "usage"
+    usage_directory = Path(__file__).parent.parent.parent / "data" / "usage"
 
     @classmethod
     def get_usage_directory(cls) -> Path:
@@ -46,45 +46,43 @@ class Model:
             return self.usage
 
         file_path = self.get_usage_file_path()
-        if not file_path.exists():
-            result = Usage()
-        else:
-            with open(file_path, "r") as f:
-                result = Usage(**json.load(f))
         
-        self.usage = result
+        self.usage = Usage.load(file_path)
         return result
 
     def save_usage(self) -> None:
         file_path = self.get_usage_file_path()
         file_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(file_path, "w") as f:
-            json.dump(self.usage.__dict__, f)
+        self.usage.save(file_path)
 
     def update_usage(self, usage: Usage):
         self.add_usage_log(usage)
 
         self.usage.update_from_usage(usage)
 
+        self.save_usage()
+
     def add_usage_log(self, usage: Usage):
         self.usage_logs.append(usage)
 
-    def estimate_input_spending(self) -> float:
+    def estimate_input_spending(self, always_print=False) -> float:
         if self.input_cost is None:
             raise ValueError("Input cost is not set for model {self.id}")
 
         result = self.input_cost * self.usage.get_prompt_tokens() / 1000000
-        print(f"Input spending for {self.id}: {result}")
+        if always_print or result > 0.:
+            print(f"Input spending for {self.id}: {result}")
 
         return result
 
-    def estimate_output_spending(self) -> float:
+    def estimate_output_spending(self, always_print=False) -> float:
         if self.output_cost is None:
             raise ValueError("Output cost is not set")
 
         result = self.output_cost * self.usage.get_completion_tokens() / 1000000
-        print(f"Output spending for {self.id}: {result}")
+        if always_print or result > 0.:
+            print(f"Output spending for {self.id}: {result}")
 
         return result
 

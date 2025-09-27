@@ -1,13 +1,13 @@
 # coding: utf-8
 
 from ai.api.model import Model
-from ai.api.manager import APIManagerInterface, create_manager, create_managers
+from ai.api.manager import APIManagerInterface, get_instance as get_manager_instance, get_instances as get_manager_instances
 
 class SpendingEstimator:
     __instance = None
 
     @classmethod
-    def create_estimator(cls, limit: float) -> "SpendingEstimator":
+    def create_instance(cls, limit: float) -> "SpendingEstimator":
         if cls.__instance is not None:
             raise ValueError("SpendingEstimator already created")
 
@@ -16,21 +16,24 @@ class SpendingEstimator:
         return cls.__instance
 
     @classmethod
-    def get_instance(cls) -> "SpendingEstimator":
+    def get_instance(cls, create_if_none=False) -> "SpendingEstimator":
         if cls.__instance is None:
-            raise ValueError("SpendingEstimator not created")
+            if not create_if_none:
+               raise ValueError("SpendingEstimator not created")
+            else:
+                cls.create_instance()
 
         return cls.__instance
 
     def __init__(self, limit: float):
         self.limit = limit
 
-    def estimate_api_cost(self, api: str | APIManagerInterface) -> float:
+    def estimate_api_spending(self, api: str | APIManagerInterface) -> float:
         """Estimate API current spending"""
 
         # Load the API manager
         if isinstance(api, str):
-            api_manager = create_manager(api)
+            api_manager = get_manager_instance(api)
         else:
             api_manager = api
 
@@ -41,7 +44,7 @@ class SpendingEstimator:
 
         # Load the API manager
         if isinstance(api, str):
-            api_manager = create_manager(api)
+            api_manager = get_manager_instance(api)
         else:
             api_manager = api
         if isinstance(model, str):
@@ -53,8 +56,8 @@ class SpendingEstimator:
         """Estimate current spending for all APIs and models"""
 
         spending = 0
-        for api in create_managers():
-            spending += self.estimate_api_cost(api)
+        for api in get_manager_instances():
+            spending += self.estimate_api_spending(api)
 
         return spending
 

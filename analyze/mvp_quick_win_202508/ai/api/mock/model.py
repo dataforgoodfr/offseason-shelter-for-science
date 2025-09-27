@@ -12,4 +12,4 @@ class Mock2(Model):
 
 class Mock3(Model):
     def __init__(self):
-        super().__init__("mock-3", "mock-3", 1, 2)
+        super().__init__("mock-3", "mock-3", 15, 200)

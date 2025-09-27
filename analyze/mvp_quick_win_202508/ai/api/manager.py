@@ -52,7 +52,12 @@ class APIManagerInterface(ABC):
         pass
 
     @abstractmethod
-    def send_prompt(self, model_id: str, prompt: str, spending_limit: float) -> RequestResult:
+    def set_spending_estimator(self):
+        """Defines the Spending Estimator."""
+        pass
+
+    @abstractmethod
+    def send_prompt(self, model_id: str, prompt: str) -> RequestResult:
         """Sends a prompt to the API and returns the result."""
         pass
 
@@ -61,7 +66,7 @@ class APIManagerInterface(ABC):
         """Estimates the spending for the API manager."""
         pass
 
-def create_manager(manager_name: str) -> APIManagerInterface:
+def _create_manager(manager_name: str) -> APIManagerInterface:
     if manager_name not in _MANAGERS:
         raise ValueError(f"Manager {manager_name} not found")
 
@@ -72,8 +77,16 @@ def create_manager(manager_name: str) -> APIManagerInterface:
     manager_class = getattr(module, class_name)
     return manager_class()
 
-def create_managers() -> Dict[str, APIManagerInterface]:
-    return {manager_name: create_manager(manager_name) for manager_name in _MANAGERS}
+_INSTANCES = {}
+
+def get_instance(manager_name: str) -> APIManagerInterface:
+    if manager_name in _MANAGERS and manager_name not in _INSTANCES:
+        _INSTANCES[manager_name] = _create_manager(manager_name)
+    
+    return _INSTANCES[manager_name]
+
+def get_instances() -> Dict[str, APIManagerInterface]:
+    return {manager_name: get_instance(manager_name) for manager_name in _MANAGERS}
 
 # ------------------------------------------------------------------------------------------------
 
@@ -83,8 +96,6 @@ from .spending import SpendingEstimator
 class APIManager(APIManagerInterface):
     def __init__(self):
         self.models = {}
-
-        self.spending_limit = None
         self.spending_estimator = None
 
     def get_default_model(self) -> Model:
@@ -96,14 +107,18 @@ class APIManager(APIManagerInterface):
     def init(self) -> Any:
         return self.get_api()
 
-    def send_prompt(self, model_id: str, prompt: str, spending_limit: float) -> RequestResult:
+    def set_spending_estimator(self, estimator: SpendingEstimator):
+        self.spending_estimator = estimator
+
+    def send_prompt(self, model_id: str, prompt: str) -> RequestResult:
         if model_id not in self.models:
             raise ValueError(f"Model {model_id} not found")
 
-        self.spending_limit = spending_limit
+        if self.spending_estimator is None:
+            raise ValueError(f"SpendingEstimator is not set")
 
         # Before sending the prompt, estimate current spending
-        self._get_spending_estimator().control_spending(strict=True)
+        self.spending_estimator.control_spending(strict=True)
 
         model = self.models[model_id]
         result = self._send_prompt(model, prompt)
@@ -118,14 +133,6 @@ class APIManager(APIManagerInterface):
         for model in self.models.values():
             spending += model.estimate_spending()
         return spending
-
-    def _get_spending_estimator(self) -> SpendingEstimator:
-        if self.spending_estimator is None:
-            if self.spending_limit is None:
-                raise ValueError("Spending limit is not set")
-
-            self.spending_estimator = SpendingEstimator(self.spending_limit)
-        return self.spending_estimator
 
     @abstractmethod
     def _send_prompt(self, model: Model, prompt: str) -> RequestResult:
