@@ -42,7 +42,7 @@ class OpenAIManager(APIManager):
             self.client = OpenAI(api_key=self._get_api_key())
 
         if model.id not in AVAILABLE_MODELS:
-            raise ValueError(f"Model {model.id} not found")
+            raise ValueError(f"Model {model.id} not found for {self.__class__.__name__}")
 
         try:
             response = self.client.chat.completions.create(

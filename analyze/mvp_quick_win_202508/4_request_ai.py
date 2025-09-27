@@ -8,6 +8,7 @@ from typing import List, Dict, Any
 
 from ai.api.manager import APIManagerInterface, get_instance as get_manager_instance
 from ai.api.spending import SpendingEstimator
+from user_input.question import yn_question
 
 import importlib
 
@@ -245,7 +246,22 @@ def main():
             print(f"- {model_id}")
         return
     elif args.cmd == "prompt":
-        send_prompt(manager, args.model, args.prompts_directory, args.file_limit, args.prompt_limit, args.output_dir, args.spending_limit)
+        if args.model is None:
+            args.model = manager.get_default_model_id()
+
+        for arg in vars(args):
+            print(f" - {arg} = ", getattr(args, arg))
+        
+        if yn_question("Do you wish to continue ?"):
+            if args.file_limit == 0 or args.prompt_limit == 0:
+                if not yn_question("Warning : at least one limit is lifted, are you sure ?"):
+                    return
+
+            if args.spending_limit > 10:
+                if not yn_question("Warning : spending limit is high, are you sure ?"):
+                    return
+
+            send_prompt(manager, args.model, args.prompts_directory, args.file_limit, args.prompt_limit, args.output_dir, args.spending_limit)
 
 if __name__ == "__main__":
     exit(main())

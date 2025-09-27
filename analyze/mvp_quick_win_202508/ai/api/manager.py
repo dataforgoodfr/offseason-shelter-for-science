@@ -112,7 +112,7 @@ class APIManager(APIManagerInterface):
 
     def send_prompt(self, model_id: str, prompt: str) -> RequestResult:
         if model_id not in self.models:
-            raise ValueError(f"Model {model_id} not found")
+            raise ValueError(f"Model {model_id} not found for {self.__class__.__name__}")
 
         if self.spending_estimator is None:
             raise ValueError(f"SpendingEstimator is not set")
