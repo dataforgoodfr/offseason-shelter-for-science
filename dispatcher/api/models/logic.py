@@ -20,7 +20,7 @@ logger.setLevel(logging.INFO)
 class Dispatcher:
     def __init__(self, priorizer_client: Optional[PriorizerClient] = None):
         self.data_dir = Path(__file__).parent.parent / "data"
-        self.ranker_file = self.data_dir / "ranker_mock.json"
+        self.ranker_cache_file = self.data_dir / "ranker_cache.json"
         self.alloc_file = self.data_dir / "allocations.json"
         self.rescues_file = self.data_dir / "rescues_mock.json"
         self._priorizer_client = priorizer_client
@@ -29,44 +29,7 @@ class Dispatcher:
     def _init_files(self):
         """Crée les fichiers s'ils n'existent pas avec un contenu valide"""
         self.data_dir.mkdir(exist_ok=True)
-        
-        # Fichier ranker
-        if not self.ranker_file.exists() or self.ranker_file.stat().st_size == 0:
-            self.ranker_file.write_text(
-                json.dumps([
-                    {
-                        "ds_id": "1e5add2c-88db-4a35-b23d-289db927f57a",
-                        "res_id": "907ca678-6428-4dca-9022-ec4dee9f8e37",
-                        "asset_id": "45445",
-                        "path": "data_gov_ca-gov_20250601_120256/package_search_S0000.json",
-                        "name": "CHHS CA mock data 1",
-                        "size_mb": 4.5,
-                        "priority": 1,
-                        "url": "https://data.chhs.ca.gov/dataset/5a281abf-1730-43b0-b17b-ac6a35db5760/resource/724c6fd8-a645-4e52-b63f-32631a20db5d/download/adult-depression-lghc-indicator-24.csv"
-                    },
-                    {
-                        "ds_id": "1e5add2c-88db-4a35-b23d-289db927f57a",
-                        "res_id": "198759ae-9144-49be-bff2-f2089e33270b",
-                        "asset_id": "15625",
-                        "path": "data_gov_ca-gov_20250601_120256/package_search_S0000.json",
-                        "name": "CHHS CA mock data 2",
-                        "size_mb": 16.2,
-                        "priority": 1,
-                        "url": "https://data.cdc.gov/api/views/bi63-dtpu/rows.csv?accessType=DOWNLOAD"
-                    },
-                    {
-                        "ds_id": "d3",
-                        "res_id": "54898dz0-4485-4sq1-szzd-f891d32ss1546",
-                        "asset_id": "71465",
-                        "path": "data_gov_ca-gov_20250601_120256/package_search_S0000.json",
-                        "name": "Dataset 3",
-                        "size_mb": 156,
-                        "priority": 6,
-                        "url": "magnet:?xt=urn:btih:dd8255ecdc7ca55fb0bbf81323d87062db1f6d1c&dn=Big+Buck+Bunny&tr=udp%3A%2F%2Fexplodie.org%3A6969&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.empire-js.us%3A1337&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337&tr=wss%3A%2F%2Ftracker.btorrent.xyz&tr=wss%3A%2F%2Ftracker.fastcast.nz&tr=wss%3A%2F%2Ftracker.openwebtorrent.com&ws=https%3A%2F%2Fwebtorrent.io%2Ftorrents%2F&xs=https%3A%2F%2Fwebtorrent.io%2Ftorrents%2Fbig-buck-bunny.torrent"
-                    }
-                ])
-            )
-        
+    
         # Fichier d'allocations
         if not self.alloc_file.exists() or self.alloc_file.stat().st_size == 0:
             self.alloc_file.write_text(json.dumps([]))
@@ -124,14 +87,20 @@ class Dispatcher:
             try:
                 logger.info("Récupération des assets depuis le priorizer")
                 assets = await self._priorizer_client.get_ranking()
+
                 # Conversion of AssetModel to dictionaries for compatibility
-                return [asset.model_dump() for asset in assets]
+                result = [asset.model_dump() for asset in assets]
+
+                # Save assets to cache file
+                self._save_json(self.ranker_cache_file, result)
+
+                return result
             except Exception as e:
-                logger.warning(f"Impossible de récupérer depuis le priorizer: {e}, utilisation du fichier local")
-                return self._load_json(self.ranker_file)
+                logger.warning(f"Impossible de récupérer depuis le priorizer: {e}, utilisation du cache local")
+                return self._load_json(self.ranker_cache_file)
         else:
-            logger.info("Utilisation du fichier local pour les assets")
-            return self._load_json(self.ranker_file)
+            logger.info("Utilisation du cache local pour les assets")
+            return self._load_json(self.ranker_cache_file)
            
     async def allocate_assets(self, free_space_mb: float, node_id: str = None) -> Dict:
         """Priorise et alloue les assets (version multi-allocation)"""
@@ -140,7 +109,7 @@ class Dispatcher:
         remaining_space = free_space_mb
         
         # Tri par priorité (desc) puis taille (asc)
-        for asset in sorted(available, key=lambda x: (-x['priority'], x['size_mb'])):
+        for asset in sorted(available, key=lambda x: (x['priority'], x['size_mb'])):
             # Asset size may not be known yet
             if asset['size_mb'] is None or asset['size_mb'] <= remaining_space:
                 selected.append(asset)
