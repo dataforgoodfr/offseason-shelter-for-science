@@ -4,6 +4,7 @@ import datetime
 import json
 import pathlib
 import time
+from typing import Dict
 
 class Usage:
     @classmethod
@@ -47,11 +48,14 @@ class Usage:
 
     def save(self, path: pathlib.Path):
         with path.open("w") as f:
-            json.dump({
+            json.dump(self.to_dict(), f)
+
+    def to_dict(self) -> Dict[str, str | int]:
+        return {
                 "date": self.date.isoformat(),
                 "prompt": self._prompt_tokens,
                 "completion": self._completion_tokens,
-                }, f)
+            }
 
 class RequestResult:
     def __init__(self, success: bool, prompt: str, model: str, response: str, usage: dict, error: str = None):
@@ -59,6 +63,22 @@ class RequestResult:
         self.prompt = prompt
         self.model = model
         self.response = response
-        self.usage: Usage = Usage(date=time.strftime("%Y-%m-%d %H:%M:%S"), prompt_tokens=usage["prompt_tokens"], completion_tokens=usage["completion_tokens"])
+        self.usage: Usage = Usage(
+            date=datetime.datetime.now(),
+            prompt_tokens=usage["prompt_tokens"],
+            completion_tokens=usage["completion_tokens"]
+            )
         self.timestamp = time.time()
         self.error = error
+
+    def to_dict(self) -> Dict:
+        result = {
+            "success": self.success,
+            "model": self.model,
+            "prompt": self.prompt,
+            "usage": self.usage.to_dict()
+        }
+        if self.error:
+            result["error"] = self.error
+
+        return result

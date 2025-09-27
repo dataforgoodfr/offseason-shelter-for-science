@@ -1,6 +1,7 @@
 # coding: utf-8
 
 import argparse
+import datetime
 import pathlib
 import json
 import time
@@ -53,8 +54,8 @@ def save_response(response_data: Dict[str, Any], output_dir: pathlib.Path):
     if not output_dir.exists():
         output_dir.mkdir(parents=True, exist_ok=True)
     
-    timestamp = time.strftime("%Y%m%d_%H%M%S")
-    output_file = output_dir / f"ai_response_{timestamp}.json"
+    file_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S.%f")
+    output_file = output_dir / f"ai_response_{file_time}.json"
     
     with output_file.open('w', encoding='utf-8') as f:
         json.dump(response_data, f, indent=2, ensure_ascii=False)
@@ -127,22 +128,21 @@ def send_prompt(
                 print(f"\n***\n{response_data.response}\n***")
             else:
                 print(f"!!! Error: {response_data.error}")
+
+            save_response({
+                "responses": response_data.to_dict(),
+                "settings": {
+                    "api": manager.__class__.__name__,
+                    "model": model,
+                    "prompts_directory": str(prompts_directory),
+                    "file_limit": file_limit,
+                    "prompt_limit": prompt_limit,
+                }
+            }, output_dir)
         
             # Small pause between requests
             time.sleep(1)
-    
-    # Save all responses
-    if all_responses:
-        save_response({
-            "responses": json.dumps(all_responses, default=lambda o: o.__dict__),
-            "settings": {
-                "model": model,
-                "prompts_directory": str(prompts_directory),
-                "file_limit": file_limit,
-                "prompt_limit": prompt_limit,
-            }
-        }, output_dir)
-    
+        
     # Display a summary
     successful = sum(1 for r in all_responses if r.success)
     failed = len(all_responses) - successful
