@@ -61,10 +61,12 @@ class SpendingEstimator:
 
         return spending
 
-    def control_spending(self, strict: bool) -> bool:
+    def control_spending(self, strict: bool, display: bool=False) -> bool:
         """Control current spending for all APIs and models"""
 
         spending = self.estimate_spending()
+        if display:
+            print(f"Total spending: {spending}")
         if spending > self.limit:
             if strict:
                 raise ValueError(f"Current spending is {spending}, limit is {self.limit}, please wait for the next month")

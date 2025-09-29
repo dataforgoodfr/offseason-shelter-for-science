@@ -49,26 +49,12 @@ def list_prompts_from_directory(directory: pathlib.Path, limit: int = 1) -> List
     # Limit the number of files
     return prompt_files[:limit] if limit else prompt_files
 
-def save_response(response_data: Dict[str, Any], output_dir: pathlib.Path):
-    """Saves the response to a JSON file."""
-    if not output_dir.exists():
-        output_dir.mkdir(parents=True, exist_ok=True)
-    
-    file_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S.%f")
-    output_file = output_dir / f"ai_response_{file_time}.json"
-    
-    with output_file.open('w', encoding='utf-8') as f:
-        json.dump(response_data, f, indent=2, ensure_ascii=False)
-    
-    print(f"Response saved to {output_file}")
-
 def send_prompt(
     manager: APIManagerInterface,
     model: str,
     prompts_directory: pathlib.Path,
     file_limit: int,
     prompt_limit: int,
-    output_dir: pathlib.Path,
     spending_limit: float
     ):
     """Sends prompts to the AI API and saves responses."""
@@ -111,37 +97,38 @@ def send_prompt(
 
         # Split the prompt content into prompts
         prompts = prompt_content.split(PROMPT_DELIMITER)
+        if prompt_limit:
+            prompts = prompts[:prompt_limit]
 
+        print(f"\nSending prompts to API {manager.get_name()}, model {model}...")
         for i, prompt in enumerate(prompts):
-            if prompt_limit and i >= prompt_limit:
-                break
+            print(f"\n*** {i + 1} ***\n{prompt}\n***")
 
-            print(f"\nSending prompt to API {manager.get_name()}, model {model}...")
-            print(f"\n***\n{prompt}\n***")
-            response_data = manager.send_prompt(model, prompt)
-            all_responses.append(response_data)
-
-            if response_data.success:
-                print(f"Response received ({response_data.usage.get_total_tokens()} tokens)")
-                print(f"- Prompt: {response_data.usage.get_prompt_tokens()} tokens")
-                print(f"- Response: {response_data.usage.get_completion_tokens()} tokens")
-                print(f"\n***\n{response_data.response}\n***")
-            else:
-                print(f"!!! Error: {response_data.error}")
-
-            save_response({
-                "responses": response_data.to_dict(),
-                "settings": {
-                    "api": manager.__class__.__name__,
-                    "model": model,
-                    "prompts_directory": str(prompts_directory),
-                    "file_limit": file_limit,
-                    "prompt_limit": prompt_limit,
+        # prompts = [
+        #     f"Hello, the random number is 45588771122. How are you?",
+        #     "What is the random number? I forgot it.",
+        #     "Just reverse it."
+        # ]
+        response_data = manager.send_prompts(
+            model,
+            prompts,
+            context={
+                "prompt_file": prompt_file.name,
+                "prompt_limit": prompt_limit
                 }
-            }, output_dir)
-        
-            # Small pause between requests
-            time.sleep(1)
+            )
+        all_responses.append(response_data)
+
+        if response_data.success:
+            print(f"Response received ({response_data.usage.get_total_tokens()} tokens)")
+            print(f"- Prompt: {response_data.usage.get_prompt_tokens()} tokens")
+            print(f"- Response: {response_data.usage.get_completion_tokens()} tokens")
+            print(f"\n***\n{response_data.responses}\n***")
+        else:
+            print(f"!!! Error: {response_data.error}")
+    
+        # Small pause between requests
+        time.sleep(1)
         
     # Display a summary
     successful = sum(1 for r in all_responses if r.success)
@@ -159,6 +146,27 @@ def send_prompt(
 
         total_spending = SpendingEstimator.get_instance().estimate_spending()
         print(f"Total spending = {total_spending}")
+
+def print_arg_once(vargs: Dict[str, Any], arg_name: str):
+    if arg_name not in print_arg_once.args_printed:
+        print(f" - {arg_name} = {vargs[arg_name]}")
+        print_arg_once.args_printed.add(arg_name)
+
+print_arg_once.args_printed = set()
+
+def display_args(args: argparse.Namespace):
+    vargs = vars(args)
+    print_arg_once(vargs, "api")
+    print_arg_once(vargs, "model")
+    print_arg_once(vargs, "spending_limit")
+    print_arg_once(vargs, "file_limit")
+    print_arg_once(vargs, "prompt_limit")
+
+    # Do not print cmd
+    print_arg_once.args_printed.add("cmd")
+
+    for arg in vargs:
+        print_arg_once(vargs, arg)
 
 def main():
     """Main function of the script."""
@@ -183,6 +191,12 @@ def main():
         help="List available models"
     )
     list_models_parser.set_defaults(cmd="list")
+
+    spending_parser = cmd_parser.add_parser(
+        "spending",
+        help="Estimate current spending"
+    )
+    spending_parser.set_defaults(cmd="spending")
 
     send_prompt_parser = cmd_parser.add_parser(
         "prompt",
@@ -226,7 +240,7 @@ def main():
         "--spending-limit",
         "-s",
         type=float,
-        default=5,
+        default=1.,
         help="Spending limit for the API manager"
     )
   
@@ -239,19 +253,18 @@ def main():
 
     manager = get_manager_instance(args.api)
     if args.cmd == "list":
-        print(f"Manager: {manager.get_name()} : list models")
+        print(f"Manager: {manager.get_name()} : available models")
         models = manager.get_available_models()
-        print("Available models:")
         for model_id in models.keys():
             print(f"- {model_id}")
         return
+    elif args.cmd == "spending":
+        print("Total spending =", SpendingEstimator.create_instance(0.).estimate_spending())
     elif args.cmd == "prompt":
         if args.model is None:
             args.model = manager.get_default_model_id()
 
-        for arg in vars(args):
-            print(f" - {arg} = ", getattr(args, arg))
-        
+        display_args(args)
         if yn_question("Do you wish to continue ?"):
             if args.file_limit == 0 or args.prompt_limit == 0:
                 if not yn_question("Warning : at least one limit is lifted, are you sure ?"):
@@ -260,8 +273,8 @@ def main():
             if args.spending_limit > 10:
                 if not yn_question("Warning : spending limit is high, are you sure ?"):
                     return
-
-            send_prompt(manager, args.model, args.prompts_directory, args.file_limit, args.prompt_limit, args.output_dir, args.spending_limit)
+            manager.set_output_directory(args.output_dir)
+            send_prompt(manager, args.model, args.prompts_directory, args.file_limit, args.prompt_limit, args.spending_limit)
 
 if __name__ == "__main__":
     exit(main())

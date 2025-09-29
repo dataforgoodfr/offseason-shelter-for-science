@@ -158,7 +158,7 @@ if __name__ == "__main__":
 
             if len(prompted_datasets) > 1:
                 prompt += f"{prompt_newline}{PROMPT_DELIMITER}Note: The datasets are split into multiple chunks due to the limit set.{prompt_newline}"
-                prompt += f"Do not include previous datasets in the next results. Do not repeat headers from now.{prompt_newline}"
+                # prompt += f"Do not include previous datasets in the next results. Do not repeat headers from now.{prompt_newline}"
 
                 for datasets in prompted_datasets[1:]:
                     prompt += f"Here is the next chunk of datasets:{prompt_newline}"

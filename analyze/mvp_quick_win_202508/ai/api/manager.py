@@ -1,10 +1,13 @@
 # coding: utf-8
 
 from abc import ABC, abstractmethod
+import datetime
 import getpass
 import importlib
+import json
 import os
-from typing import Any, Dict, List
+import pathlib
+from typing import Any, Dict, List, Tuple
 
 from .model import Model
 from .result import RequestResult
@@ -16,6 +19,10 @@ _MANAGERS = {
 
 # API Manager Interface
 class APIManagerInterface(ABC):
+    @abstractmethod
+    def get_name(self) -> str:
+        """Returns the name of the API manager."""
+        pass
 
     @abstractmethod
     def get_default_model_id(self) -> str:
@@ -30,12 +37,7 @@ class APIManagerInterface(ABC):
     def get_available_models(self) -> Dict[str, Model]:
         """Returns the available models."""
         pass
-
-    @abstractmethod
-    def get_name(self) -> str:
-        """Returns the name of the API manager."""
-        pass
-    
+   
     @abstractmethod
     def get_api(self) -> Any:
         """Returns the API client."""
@@ -52,12 +54,17 @@ class APIManagerInterface(ABC):
         pass
 
     @abstractmethod
+    def set_output_directory(self, path: pathlib.Path):
+        """Sets the output directory for saving responses."""
+        pass
+
+    @abstractmethod
     def set_spending_estimator(self):
         """Defines the Spending Estimator."""
         pass
 
     @abstractmethod
-    def send_prompt(self, model_id: str, prompt: str) -> RequestResult:
+    def send_prompts(self, model_id: str, prompts: List[str], context: Dict[str, Any] = None) -> RequestResult:
         """Sends a prompt to the API and returns the result."""
         pass
 
@@ -96,7 +103,10 @@ from .spending import SpendingEstimator
 class APIManager(APIManagerInterface):
     def __init__(self):
         self.models = {}
+        self.output_directory = None
         self.spending_estimator = None
+
+        self.name_lower = self.get_name().lower()
 
     def get_default_model(self) -> Model:
         return self.models[self.get_default_model_id()]
@@ -107,10 +117,13 @@ class APIManager(APIManagerInterface):
     def init(self) -> Any:
         return self.get_api()
 
+    def set_output_directory(self, path: pathlib.Path):
+        self.output_directory = path
+
     def set_spending_estimator(self, estimator: SpendingEstimator):
         self.spending_estimator = estimator
 
-    def send_prompt(self, model_id: str, prompt: str) -> RequestResult:
+    def send_prompts(self, model_id: str, prompts: List[str], context: Dict[str, Any] = None) -> RequestResult:
         if model_id not in self.models:
             raise ValueError(f"Model {model_id} not found for {self.__class__.__name__}")
 
@@ -118,10 +131,21 @@ class APIManager(APIManagerInterface):
             raise ValueError(f"SpendingEstimator is not set")
 
         # Before sending the prompt, estimate current spending
-        self.spending_estimator.control_spending(strict=True)
+        self.spending_estimator.control_spending(strict=True, display=True)
+
+        # Update output file time
+        self.output_file_time = datetime.datetime.now().strftime("%Y%m%d_%H%M%S.%f")
 
         model = self.models[model_id]
-        result = self._send_prompt(model, prompt)
+        (success, response) = self._send_prompts(model, prompts)
+
+        self._save_raw_response(response)
+        result = self._response_to_result(success, model, prompts, response)
+        result.context = context
+        self.save_result(
+            result,
+            model=model_id,
+            )
         
         # Estimate the cost
         model.update_usage(result.usage)
@@ -135,9 +159,55 @@ class APIManager(APIManagerInterface):
         return spending
 
     @abstractmethod
-    def _send_prompt(self, model: Model, prompt: str) -> RequestResult:
-        """Sends a prompt to the API and returns the result."""
+    def _send_prompts(self, model: Model, prompts: List[str]) -> Tuple[bool, Any | Exception]:
+        """Sends prompts to the API and returns the result."""
         pass
+
+    @abstractmethod
+    def _response_to_result(self, success: bool, model: str, prompts: List[str], response: str) -> RequestResult:
+        """Converts a raw API response to a RequestResult."""
+        pass
+
+    def _save_raw_response(self, response: Any | Exception):
+        ext = "txt"
+
+        if isinstance(response, Exception):
+            response = "ERROR : " + str(response)
+        elif not isinstance(response, str):
+            response = json.dumps(response, indent=2, default=vars, ensure_ascii=False)
+            ext = "json"        
+
+        self._save_output("raw_response", response, ext=ext)
+
+    def save_result(self, result: RequestResult, model: str):
+        """Saves the result to a JSON file."""
+
+        content = {
+            "result": result.to_dict(),
+            "settings": {
+                "api": self.name_lower,
+                "model": model
+            }
+        }
+
+        output_path = self._save_output("ai_result", json.dumps(content, indent=2, ensure_ascii=False), ext="json")
+        print(f"Result saved to {output_path}")
+
+        output_path = self._save_output("ai_response", "\n".join(result.responses), ext="csv")
+        print(f"Response saved to {output_path}")
+
+    def _save_output(self, prefix: str, content: str, ext: str="txt") -> str:
+        if self.output_directory is None:
+            raise ValueError("Output directory is not set")
+
+        if not self.output_directory.exists():
+            self.output_directory.mkdir(parents=True, exist_ok=True)
+        
+        file_path = self.output_directory / f"{self.output_file_time}_{prefix}_{self.name_lower}.{ext}"
+        with file_path.open("w", encoding="utf-8") as f:
+            f.write(content)
+
+        return str(file_path)
 
     def _add_model(self, model: Model):
         self.models[model.id] = model

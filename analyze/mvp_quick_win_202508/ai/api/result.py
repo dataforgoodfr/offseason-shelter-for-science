@@ -4,7 +4,7 @@ import datetime
 import json
 import pathlib
 import time
-from typing import Dict
+from typing import Dict, List
 
 class Usage:
     @classmethod
@@ -58,27 +58,28 @@ class Usage:
             }
 
 class RequestResult:
-    def __init__(self, success: bool, prompt: str, model: str, response: str, usage: dict, error: str = None):
+    def __init__(self, success: bool, prompts: List[str], model: str, responses: List[str], usage: Usage, error: str = None):
         self.success = success
-        self.prompt = prompt
+        self.prompts = prompts
         self.model = model
-        self.response = response
-        self.usage: Usage = Usage(
-            date=datetime.datetime.now(),
-            prompt_tokens=usage["prompt_tokens"],
-            completion_tokens=usage["completion_tokens"]
-            )
+        self.responses = responses
+        self.usage: Usage = usage
         self.timestamp = time.time()
         self.error = error
+        self.context: Dict = None
 
     def to_dict(self) -> Dict:
         result = {
             "success": self.success,
             "model": self.model,
-            "prompt": self.prompt,
-            "usage": self.usage.to_dict()
+            "prompts": self.prompts,
+            "usage": self.usage.to_dict(),
+            "responses": self.responses,
         }
         if self.error:
             result["error"] = self.error
+
+        if self.context:
+            result["context"] = self.context
 
         return result
