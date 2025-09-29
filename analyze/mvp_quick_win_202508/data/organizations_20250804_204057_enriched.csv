@@ -1,0 +1,10 @@
+id,dg_name,dg_title,description,keywords
+1,ca-gov,State of California,"Government of the State of California, responsible for public services, health, environment, and infrastructure.","california, state, government, public services, health, environment, infrastructure"
+2,doe-gov,Department of Energy,"U.S. federal agency focused on energy policy, research, nuclear safety, and innovation.","energy, research, nuclear, innovation, policy, federal, usa"
+3,edac-unm-edu,"Earth Data Analysis Center, University of New Mexico","Academic center specializing in geospatial data, remote sensing, and earth sciences.","geospatial, earth science, remote sensing, university, new mexico, academic, data analysis"
+4,epa-gov,U.S. Environmental Protection Agency,"Federal agency dedicated to protecting human health and the environment.","environment, protection, pollution, health, federal, usa, regulation"
+5,hhs-gov,U.S. Department of Health & Human Services,"Federal department overseeing public health, social services, and healthcare programs.","health, public health, social services, healthcare, federal, usa, welfare"
+6,nasa-gov,National Aeronautics and Space Administration,"U.S. space agency for aeronautics, space exploration, and scientific research.","space, aeronautics, exploration, research, nasa, federal, usa, science"
+7,noaa-gov,"National Oceanic and Atmospheric Administration, Department of Commerce","Federal agency for weather, climate, oceans, and atmospheric research.","weather, climate, ocean, atmosphere, research, federal, usa, commerce"
+8,usaid-gov,US Agency for International Development,"U.S. agency providing international aid, development, and humanitarian assistance.","international, development, aid, humanitarian, usa, global, assistance"
+9,usda-gov,Department of Agriculture,"Federal department managing agriculture, food safety, rural development, and nutrition programs.","agriculture, food, rural, nutrition, safety, federal, usa, farming"

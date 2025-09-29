@@ -1,0 +1,21 @@
+[project]
+name = "mvp_analysis_202508"
+version = "0.0.1"
+description = "Analysis requested during 2025, August"
+readme = "README.md"
+requires-python = ">=3.9"
+
+dependencies = [
+    "pydantic>=2.11.7",
+    "pydantic_core>=2.33.2",
+    "psycopg2-binary>=2.9.9",
+    "sqlalchemy>=2.0.0",
+    "openai>=1.0.0",
+    "rescue-api",
+    "pandas>=2.3.2",
+]
+
+[tool.uv.sources]
+rescue-api = [
+    { git = "https://github.com/dataforgoodfr/offseason-shelter-for-science-rescue_db.git", rev = "v0.0.4" },
+]
