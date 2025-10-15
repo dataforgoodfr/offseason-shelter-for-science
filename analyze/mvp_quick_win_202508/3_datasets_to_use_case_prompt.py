@@ -75,11 +75,17 @@ if __name__ == "__main__":
         action='store_true',
         help="Enforce separation between different blocks of the prompt"
     )
+    argparser.add_argument(
+        "--repeat",
+        "-r",
+        action='store_true',
+        help="Repeat the prompt instructions for each batch of datasets"
+    )
 
     args = argparser.parse_args()
 
     if args.enforce_block_separation and args.prompt_newline.strip() == "":
-        args.prompt_newline = "\n# # # #\n"
+        args.prompt_newline = "\n\n"
 
     if not args.limit or args.limit < 0:
         raise ValueError("Limit must be a positive integer.")
@@ -154,19 +160,22 @@ if __name__ == "__main__":
                     })
                 prompted_datasets.append(minified_datasets)
 
-            prompt = prompt.replace(PLACEHOLDER_DATASETS, format_datasets_for_prompt(prompted_datasets[0]))
+            output_prompt = prompt.replace(PLACEHOLDER_DATASETS, format_datasets_for_prompt(prompted_datasets[0]))
 
             if len(prompted_datasets) > 1:
-                prompt += f"{prompt_newline}{PROMPT_DELIMITER}Note: The datasets are split into multiple chunks due to the limit set.{prompt_newline}"
-                # prompt += f"Do not include previous datasets in the next results. Do not repeat headers from now.{prompt_newline}"
+                if args.repeat:
+                    for datasets in prompted_datasets[1:]:
+                        output_prompt += f"{prompt_newline}{PROMPT_DELIMITER}" + prompt.replace(PLACEHOLDER_DATASETS, format_datasets_for_prompt(datasets))
+                else:
+                    output_prompt += f"{prompt_newline}{PROMPT_DELIMITER}Note: The datasets are split into multiple chunks due to the limit set.{prompt_newline}"
 
-                for datasets in prompted_datasets[1:]:
-                    prompt += f"Here is the next chunk of datasets:{prompt_newline}"
-                    prompt += format_datasets_for_prompt(datasets)
-                    prompt += f"{prompt_newline}{PROMPT_DELIMITER}{prompt_newline}"
+                    for datasets in prompted_datasets[1:]:
+                        output_prompt += f"Here is the next chunk of datasets:{prompt_newline}"
+                        output_prompt += format_datasets_for_prompt(datasets)
+                        output_prompt += f"{prompt_newline}{PROMPT_DELIMITER}{prompt_newline}"
 
             output_file = output_dir / f"{org_name}_{file_datetime}.txt"
             with output_file.open('w', encoding='utf-8') as out_f:
-                out_f.write(prompt)
+                out_f.write(output_prompt)
             print(f"Prompt for organization '{org_name}' saved to {output_file}")
 

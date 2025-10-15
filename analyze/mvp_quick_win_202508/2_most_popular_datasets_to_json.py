@@ -123,4 +123,4 @@ with open(
     "w",
     encoding="utf-8",
 ) as f:
-    json.dump(output_dicts, f, ensure_ascii=False, indent=4)
+    json.dump(output_dicts, f, ensure_ascii=False, indent=2)

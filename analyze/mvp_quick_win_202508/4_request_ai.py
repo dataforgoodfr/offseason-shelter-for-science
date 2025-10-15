@@ -3,7 +3,6 @@
 import argparse
 import datetime
 import pathlib
-import json
 import time
 from typing import List, Dict, Any
 
@@ -104,20 +103,15 @@ def send_prompt(
         for i, prompt in enumerate(prompts):
             print(f"\n*** {i + 1} ***\n{prompt}\n***")
 
-        # prompts = [
-        #     f"Hello, the random number is 45588771122. How are you?",
-        #     "What is the random number? I forgot it.",
-        #     "Just reverse it."
-        # ]
-        response_data = manager.send_prompts(
-            model,
-            prompts,
-            context={
-                "prompt_file": prompt_file.name,
-                "prompt_limit": prompt_limit
-                }
-            )
-        all_responses.append(response_data)
+            response_data = manager.send_prompts(
+                model,
+                [prompt],
+                context={
+                    "prompt_file": prompt_file.name,
+                    "prompt_limit": prompt_limit
+                    }
+                )
+            all_responses.append(response_data)
 
         if response_data.success:
             print(f"Response received ({response_data.usage.get_total_tokens()} tokens)")
@@ -273,7 +267,7 @@ def main():
             if args.spending_limit > 10:
                 if not yn_question("Warning : spending limit is high, are you sure ?"):
                     return
-            manager.set_output_directory(args.output_dir)
+            manager.set_output_directory(args.output_dir / datetime.datetime.now().strftime("%Y%m%d_%H%M%S"))
             send_prompt(manager, args.model, args.prompts_directory, args.file_limit, args.prompt_limit, args.spending_limit)
 
 if __name__ == "__main__":

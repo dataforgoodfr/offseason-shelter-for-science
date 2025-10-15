@@ -15,8 +15,8 @@ You must help users understand the nature of these datasets :
 Input format : JSON
 
 Output format = ESCAPED CSV :
-  - Header = "ID","Nature of Use","Personas"
-  - Rows = Int, "Comma-separated list of nature of use", "Comma-separated list of personas"
+  - Header (hidden) = "ID","Nature of Use","Personas"
+  - Rows = Int,"Comma-separated list of nature of use","Comma-separated list of personas"
 
 // ----- -----
 
