@@ -1,7 +1,8 @@
 import json
 from os.path import join, dirname
 
-from models.payload import DispatchRequest, DispatchResponse, RescuesRequest, RescuesResponse
+from constants.mvp import AppRejectionCode as MVPAppRejectionCode
+from models.payload import DispatchRequest, DispatchResponse, RejectRequest, RescuesRequest, RescuesResponse
 from models.state import app_state
 from fastapi import HTTPException, APIRouter, Depends
 from fastapi.responses import JSONResponse
@@ -107,3 +108,21 @@ async def upsert_rescues(request: RescuesRequest, db: Session = Depends(get_db))
     print(f"Dispatch response: {response}")
 
     return response
+
+@router.post('/asset/reject')
+async def update_mvp_rejected_resource(request: RejectRequest, db: Session = Depends(get_db)):
+    result = False
+
+    app_state._logger.info(f"________Rejected MVP resource: {request.code}")
+
+    if request.code in [MVPAppRejectionCode.FILE_TOO_BIG_FOR_SEEDING, MVPAppRejectionCode.NOT_SUITABLE_FOR_BETA]:
+        result = app_state._dispatcher.update_mvp_resource_link_size(request.rescuer_id, request.res_id, request.size, db)
+    elif request.code in [MVPAppRejectionCode.HTTP_404, MVPAppRejectionCode.HTTP_403, MVPAppRejectionCode.FETCH_FAILED]:
+        result = app_state._dispatcher.update_mvp_resource_link_as_defective(request.rescuer_id, request.res_id, db)
+
+    if not result:
+        raise HTTPException(
+            status_code=422,
+            detail="The error can be the following: the rescuer doesn't exist in the database; or the code provided is not valid"
+            " or the resource provided does not exist",
+        )
