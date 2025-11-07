@@ -10,12 +10,14 @@ from rescue_api.models.asset_resource import asset_resource
 from rescue_api.models.mvp_downloader_library import MvpDownloaderLibrary
 from rescue_api.models.rescues import Rescue
 from rescue_api.database import get_db
-from sqlalchemy import func, case, desc, and_
+from sqlalchemy import func, case, desc, and_, or_
 from datetime import datetime, timezone
 from typing import List
 
 _RANKING_LIMIT = 100
 _MVP_RANKING_ID = 8 # broija 2025-09-20 : MVP default ranking id
+
+_MVP_BETA_LIMIT_SIZE = 400 * 1024 * 1024
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -73,16 +75,22 @@ class RankedRequestManager:
                 .join(Resource, Resource.id == MvpDownloaderLibrary.resource_id)
                 .join(asset_resource, asset_resource.c.resource_id == MvpDownloaderLibrary.resource_id)
                 .outerjoin(Rescue, Rescue.asset_id == asset_resource.c.asset_id)
-                .where(DatasetRank.ranking_id == last_ranking_id).where(Rescue.asset_id.is_(None))
+                .where(DatasetRank.ranking_id == last_ranking_id)
+                .where(Rescue.asset_id.is_(None))
+                .where(and_(
+                     MvpDownloaderLibrary.defective_link_flag.is_(False),
+                     or_(MvpDownloaderLibrary.deeplink_file_size.is_(None), MvpDownloaderLibrary.deeplink_file_size < _MVP_BETA_LIMIT_SIZE)
+                     ))
                 .order_by(DatasetRank.rank, Resource.id)
                 .limit(_RANKING_LIMIT)
         )
+        # self._write_query(no_magnet_ranks)
 
         results = [{
                 "path": "",
                 "name": "",
                 "priority": r.rank,
-                "size_mb": r.deeplink_file_size,
+                "size": r.deeplink_file_size,
                 "ds_id": r.dataset_id,
                 "res_id": r.resource_id,
                 "asset_id": r.asset_id,
@@ -90,8 +98,11 @@ class RankedRequestManager:
                 }
                 for r in no_magnet_ranks]
 
+        # results = [] # Forcing torrent downloads
+
+        remaining_count = _RANKING_LIMIT - len(results)
         # If not enough results, complete with results with magnet link
-        if len(results) < _RANKING_LIMIT:
+        if remaining_count > 0:
                 magnet_ranks = (
                         session.query(
                                 MvpDownloaderLibrary.dataset_id,
@@ -106,22 +117,22 @@ class RankedRequestManager:
                         .join(asset_resource, asset_resource.c.resource_id == MvpDownloaderLibrary.resource_id)
                         .outerjoin(Rescue, Rescue.asset_id == asset_resource.c.asset_id)
                         .where(DatasetRank.ranking_id == last_ranking_id)
-                        .where(Rescue.asset_id.is_not_(None))
+                        .where(Rescue.asset_id.is_not(None))
                         .order_by(DatasetRank.rank, Resource.id)
-                        .limit(_RANKING_LIMIT)
+                        .limit(remaining_count)
                 )
-                while len(results) < _RANKING_LIMIT:
-                        for r in magnet_ranks:
-                                results.append({
-                                        "path": "",
-                                        "name": "",
-                                        "priority": r.rank,
-                                        "size_mb": r.deeplink_file_size,
-                                        "ds_id": r.dataset_id,
-                                        "res_id": r.resource_id,
-                                        "asset_id": r.asset_id,
-                                        "url": r.magnet_link
-                                })
+                for r in magnet_ranks:
+                        results.append({
+                                "path": "",
+                                "name": "",
+                                "priority": r.rank,
+                                "size": r.deeplink_file_size,
+                                "ds_id": r.dataset_id,
+                                "res_id": r.resource_id,
+                                "asset_id": r.asset_id,
+                                "url": r.magnet_link
+                        })
+
         return {"assets": results}
         
     def compute_rank(self) -> List[dict]:

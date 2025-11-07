@@ -1,14 +1,14 @@
 import json
-import os
 from pathlib import Path
 from typing import List, Dict, Optional
-from datetime import datetime  # Import spécifique de la classe datetime
 import logging
 import uuid
 
 from sqlalchemy.orm import Session
 
 from rescue_api.models import Asset, Rescue, Rescuer
+from rescue_api.models.mvp_downloader_library import MvpDownloaderLibrary
+
 from .payload import AssetModel
 from .priorizer_client import PriorizerClient
 
@@ -78,6 +78,14 @@ class Dispatcher:
     def _save_json(file: Path, data: List[Dict]):
         file.write_text(json.dumps(data, indent=2))
     
+    @staticmethod
+    def _sort_helper(asset: Dict) -> tuple:
+        """Helper function to sort by priority (desc) and size (asc)"""
+        return (
+            asset['priority'],
+            asset.get('size', float('inf')) if asset.get('size') is not None else float('inf')
+            )
+    
     async def get_available_assets(self) -> List[Dict]:   
         """
         Retrieve all assets (without filtering by allocation).
@@ -109,12 +117,12 @@ class Dispatcher:
         remaining_space = free_space_mb
         
         # Tri par priorité (desc) puis taille (asc)
-        for asset in sorted(available, key=lambda x: (x['priority'], x['size_mb'])):
+        for asset in sorted(available, key=self._sort_helper):
             # Asset size may not be known yet
-            if asset['size_mb'] is None or asset['size_mb'] <= remaining_space:
+            if asset['size'] is None or asset['size'] <= remaining_space:
                 selected.append(asset)
-                if asset['size_mb'] is not None:
-                   remaining_space -= asset['size_mb']
+                if asset['size'] is not None:
+                   remaining_space -= asset['size']
         
         if not selected:
             return None
@@ -130,7 +138,7 @@ class Dispatcher:
             "res_id": a['res_id'],
             "asset_id": a['asset_id'],
             "name": a['name'],
-            "size_mb": float(a['size_mb']) if a['size_mb'] is not None else None,
+            "size": float(a['size']) if a['size'] is not None else None,
             "priority": int(a['priority']),
             "url": a['url']
         } for a in selected]
@@ -140,7 +148,7 @@ class Dispatcher:
 
         return {
             "node_id": node_id,
-            "allocated_size_mb": sum(a['size_mb'] for a in selected if a['size_mb'] is not None),
+            "allocated_size": sum(a['size'] for a in selected if a['size'] is not None),
             "assets": selected,
             "allocation_id": str(uuid.uuid4())
         }
@@ -180,6 +188,11 @@ class Dispatcher:
                 rescue.magnet_link = asset.magnet_link
                 rescue.status = asset.status.value.lower()
 
+            # Updating MVP downloader library table with file size
+            db.query(MvpDownloaderLibrary) \
+                .filter(MvpDownloaderLibrary.resource_id == asset.res_id) \
+                .update({'deeplink_file_size': asset.size})
+
             try:
                 db.commit()
             except Exception as e:
@@ -211,6 +224,49 @@ class Dispatcher:
             "not_committed_rescues": not_committed_rescues,
         }
 
+
+    def update_mvp_resource_link_as_defective(self, rescuer_id: int, resource_id: int, db: Session) -> bool:
+        result = False
+
+        if not self._rescuer_exists(rescuer_id=rescuer_id, db=db):
+            logger.error(f"Rescuer with id={rescuer_id} doesn't exist in the database.")
+            return False
+
+        db.query(MvpDownloaderLibrary) \
+            .filter(MvpDownloaderLibrary.resource_id == resource_id) \
+            .update({'defective_link_flag': True})
+
+        # @todo Log update in some table : rescuer, resource, defective, created_at
+
+        try:
+            db.commit()
+            result = True
+        except Exception as e:
+            print(f'Error while updating res {resource_id} with defective link in MVP Downloader Library', e)
+
+        return result
+
+
+    def update_mvp_resource_link_size(self, rescuer_id: int, resource_id: int, size: int, db: Session) -> bool:
+        result = False
+
+        if not self._rescuer_exists(rescuer_id=rescuer_id, db=db):
+            logger.error(f"Rescuer with id={rescuer_id} doesn't exist in the database.")
+            return False
+
+        db.query(MvpDownloaderLibrary) \
+            .filter(MvpDownloaderLibrary.resource_id == resource_id) \
+            .update({'deeplink_file_size': size})
+
+        # @todo Log update in some table : rescuer, resource, size, created_at        
+
+        try:
+            db.commit()
+            result = True
+        except Exception as e:
+            print(f'Error while updating res {resource_id} with size {size} in MVP Downloader Library', e)
+
+        return result
 
     @staticmethod
     def _rescuer_exists(rescuer_id: int, db: Session) -> bool:
