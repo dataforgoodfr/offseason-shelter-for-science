@@ -22,7 +22,7 @@ class BaseAssetModel(BaseModel):
     # @todo : remove name ?
     name: str = Field(..., description="Asset name")
     priority: int = Field(..., description="Asset priority according to ranker")
-    size_mb: Optional[float] = Field(..., description="Asset estimated size")
+    size: Optional[float] = Field(..., description="Asset size (may be estimated)")
     ds_id: int = Field(..., description="Dataset id")
     res_id: int = Field(..., description="Resource id")
     asset_id: Optional[int] = Field(None, description="Asset id")
@@ -75,3 +75,10 @@ class RescuesResponse(DispatchResponse):
         default=None,
         description="List of rescued assets for which an error happened when we tried to commit it to the database.",
     )
+
+class RejectRequest(BaseModel):
+    rescuer_id: int = Field(..., description="Rescuer id")
+    code: int = Field(..., description="Rejection code")
+    # Resource id for Beta. To be replaced by asset id.
+    res_id: int = Field(..., description="Resource id")
+    size: Optional[int] = Field(default=None, description="Asset size")

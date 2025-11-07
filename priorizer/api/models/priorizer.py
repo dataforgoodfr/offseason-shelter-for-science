@@ -8,7 +8,7 @@ class AssetModel(BaseModel):
     path: str = Field(..., description="Asset path")
     name: str = Field(..., description="Asset name")
     priority: int = Field(..., description="Asset priority according to ranker")
-    size_mb: Optional[float] = Field(..., description="Asset estimated size")
+    size: Optional[float] = Field(..., description="Asset size (may be estimated)")
     ds_id: int = Field(..., description="Dataset id")
     res_id: int = Field(..., description="Resource id")
     asset_id: Optional[int] = Field(None, description="Asset id")
