@@ -40,7 +40,7 @@ async def dispatch(request: DispatchRequest):
     app_state._logger.info("________In dispatch")
     # Call dispatcher logic with priorizer integration
     result = await app_state._dispatcher.allocate_assets(
-        free_space_mb=request.free_space_gb * 1024,
+        free_space=request.free_space,
         node_id=request.node_id
     )
     app_state._logger.info(result)

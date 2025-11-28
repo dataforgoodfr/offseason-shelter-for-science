@@ -13,7 +13,7 @@ class Status(Enum):
 class DispatchRequest(BaseModel):
     name: str = Field(..., description="Rescuer name")
     description: str = Field(..., description="Rescuer description")
-    free_space_gb: float = Field(..., description="Rescuer available space")
+    free_space: float = Field(..., description="Rescuer available space")
     node_id: Optional[str] = Field(None, description="Node id")
 
 class BaseAssetModel(BaseModel):
