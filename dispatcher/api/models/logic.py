@@ -80,7 +80,7 @@ class Dispatcher:
     
     @staticmethod
     def _sort_helper(asset: Dict) -> tuple:
-        """Helper function to sort by priority (desc) and size (asc)"""
+        """Helper function to sort by priority (asc) and size (asc)"""
         return (
             asset['priority'],
             asset.get('size', float('inf')) if asset.get('size') is not None else float('inf')
@@ -95,6 +95,7 @@ class Dispatcher:
             try:
                 logger.info("Récupération des assets depuis le priorizer")
                 assets = await self._priorizer_client.get_ranking()
+                logger.info(f"Assets retrieved from ranker: {len(assets)}")
 
                 # Conversion of AssetModel to dictionaries for compatibility
                 result = [asset.model_dump() for asset in assets]
@@ -110,19 +111,22 @@ class Dispatcher:
             logger.info("Utilisation du cache local pour les assets")
             return self._load_json(self.ranker_cache_file)
            
-    async def allocate_assets(self, free_space_mb: float, node_id: str = None) -> Dict:
+    async def allocate_assets(self, free_space: float, node_id: str = None) -> Dict:
         """Priorise et alloue les assets (version multi-allocation)"""
         available = await self.get_available_assets()
         selected = []
-        remaining_space = free_space_mb
-        
-        # Tri par priorité (desc) puis taille (asc)
+        remaining_space = free_space
+        logger.info(f"Free space available: {remaining_space / (1024 * 1024)} GB")
+
+        # Tri par priorité (asc) puis taille (asc)
         for asset in sorted(available, key=self._sort_helper):
             # Asset size may not be known yet
             if asset['size'] is None or asset['size'] <= remaining_space:
                 selected.append(asset)
                 if asset['size'] is not None:
                    remaining_space -= asset['size']
+        
+        logger.info(f"Selected {len(selected)} assets")
         
         if not selected:
             return None

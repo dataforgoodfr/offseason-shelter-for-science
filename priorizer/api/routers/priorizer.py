@@ -40,7 +40,7 @@ async def ranking():
         asset=result["assets"]
     )
     app_state._logger.info("Priorizer response ready")
-    app_state._logger.info(f"Priorizer response: {priorizer_response}")
+    # app_state._logger.info(f"Priorizer response: {priorizer_response}")
 
     return priorizer_response
 

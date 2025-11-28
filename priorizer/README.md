@@ -82,7 +82,7 @@ Allocates datasets to a node based on available storage space.
 **Request:**
 ```json
 {
-  "free_space_gb": 10,
+  "free_space": 10,
   "node_id": "node-123"
 }
 ```

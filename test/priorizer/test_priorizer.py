@@ -13,7 +13,7 @@ print("__________________________________________________________________")
 #payload = {
 #    "name": "test_dispatch_request", 
 #    "description": "This is a test dispatch", 
-#    "free_space_gb": 10,
+#    "free_space": 10,
 #    "node_id": "1"
 #    }
 #print(payload)

@@ -184,3 +184,6 @@ temp/
 
 logs/
 output/
+
+
+dispatcher/api/data/allocations.json
